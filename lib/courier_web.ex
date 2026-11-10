@@ -81,6 +81,7 @@ defmodule CourierWeb do
       import Phoenix.HTML
       # Core UI components
       import CourierWeb.CoreComponents
+      import CourierWeb.PanelComponents
 
       # Common modules used in templates
       alias Phoenix.LiveView.JS

@@ -18,12 +18,43 @@ defmodule CourierWeb.Router do
     plug :accepts, ["json"]
   end
 
+  pipeline :api_client do
+    plug :accepts, ["json"]
+    plug CourierWeb.Plugs.ClientAuth
+  end
+
+  scope "/api/v1", CourierWeb.Api do
+    pipe_through :api_client
+
+    post "/emails", EmailController, :create
+    get "/emails", EmailController, :index
+    get "/emails/:id", EmailController, :show
+    get "/emails/:email_id/events", EmailController, :events
+  end
+
+  scope "/webhooks", CourierWeb do
+    pipe_through :api
+
+    post "/postmark/:environment_id", PostmarkWebhookController, :create
+  end
+
   scope "/", CourierWeb do
     pipe_through [:browser, :require_authenticated_user]
 
     live_session :require_authenticated_user,
       on_mount: [{CourierWeb.UserAuth, :require_authenticated}] do
-      live "/", HomeLive
+      live "/", AppLive.Index
+      live "/apps/new", AppLive.Form, :new
+      live "/apps/:id", AppLive.Show
+      live "/apps/:id/edit", AppLive.Form, :edit
+      live "/apps/:app_id/environments/new", EnvironmentLive.Form, :new
+      live "/apps/:app_id/environments/:id", EnvironmentLive.Show
+      live "/apps/:app_id/environments/:id/edit", EnvironmentLive.Form, :edit
+      live "/apps/:app_id/environments/:id/email", EnvironmentLive.EmailConfig
+      live "/apps/:app_id/environments/:id/recipients", EnvironmentLive.Recipients
+      live "/apps/:app_id/environments/:id/webhook", EnvironmentLive.Webhook
+      live "/emails", EmailLive.Index
+      live "/emails/:id", EmailLive.Show
       live "/settings", UserLive.Settings, :edit
       live "/settings/confirm-email/:token", UserLive.Settings, :confirm_email
     end

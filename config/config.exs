@@ -28,11 +28,19 @@ config :courier, Oban,
   engine: Oban.Engines.Basic,
   repo: Courier.Repo,
   shutdown_grace_period: :timer.seconds(80),
-  queues: [default: 10],
+  queues: [default: 10, emails: 20, webhooks: 10, maintenance: 1],
   plugins: [
     {Oban.Plugins.Pruner, max_age: 60 * 60 * 24 * 30},
-    {Oban.Plugins.Lifeline, rescue_after: :timer.minutes(30)}
+    {Oban.Plugins.Lifeline, rescue_after: :timer.minutes(30)},
+    {Oban.Plugins.Cron, crontab: [{"0 6 * * *", Courier.Workers.PurgeExpired}]}
   ]
+
+config :ex_aws,
+  json_codec: Jason,
+  access_key_id: {:system, "AWS_ACCESS_KEY_ID"},
+  secret_access_key: {:system, "AWS_SECRET_ACCESS_KEY"}
+
+config :courier, :postmark, base_url: "https://api.postmarkapp.com"
 
 # Configures the endpoint
 config :courier, CourierWeb.Endpoint,

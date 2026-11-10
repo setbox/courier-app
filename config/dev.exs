@@ -89,3 +89,22 @@ config :swoosh, :api_client, false
 config :courier, :google,
   client_id: System.get_env("GOOGLE_CLIENT_ID"),
   client_secret: System.get_env("GOOGLE_CLIENT_SECRET")
+
+config :courier, :storage, bucket: "courier"
+
+config :ex_aws,
+  access_key_id: System.get_env("AWS_ACCESS_KEY_ID", "minioadmin"),
+  secret_access_key: System.get_env("AWS_SECRET_ACCESS_KEY", "minioadmin"),
+  region: "us-east-1"
+
+config :ex_aws, :s3,
+  scheme: "http://",
+  host: "localhost",
+  port: 9000
+
+config :courier, Courier.Vault,
+  ciphers: [
+    default:
+      {Cloak.Ciphers.AES.GCM,
+       tag: "AES.GCM.V1", key: Base.decode64!("Yvd7GkRX1th7fnd71hUZAroTx8eeBh1HXLLKEO3svTQ=")}
+  ]

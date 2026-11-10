@@ -33,8 +33,11 @@ defmodule CourierWeb.UserLive.Login do
         </:subtitle>
       </.header>
 
-      <div :if={local_mail_adapter?()} class="alert alert-info">
-        <.icon name="hero-information-circle" class="size-5 shrink-0" />
+      <div
+        :if={local_mail_adapter?()}
+        class="flex items-start gap-3 rounded-box border border-info/30 bg-info/10 p-4"
+      >
+        <.icon name="hero-information-circle" class="size-5 shrink-0 text-info" />
         <p class="text-sm">
           Ambiente de desenvolvimento: os e-mails ficam em <.link
             href="/dev/mailbox"

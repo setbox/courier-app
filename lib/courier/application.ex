@@ -10,6 +10,7 @@ defmodule Courier.Application do
     children = [
       CourierWeb.Telemetry,
       Courier.Repo,
+      Courier.Vault,
       {DNSCluster, query: Application.get_env(:courier, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: Courier.PubSub},
       {Oban, Application.fetch_env!(:courier, Oban)},

@@ -119,6 +119,25 @@ if config_env() == :prod do
          {present_env.("MAIL_FROM_NAME") || "Courier",
           present_env.("MAIL_FROM") || "courier@setbox.com.br"}
 
+  config :courier, Courier.Vault,
+    ciphers: [
+      default:
+        {Cloak.Ciphers.AES.GCM,
+         tag: "AES.GCM.V1", key: Base.decode64!(System.fetch_env!("CLOAK_KEY"))}
+    ]
+
+  config :courier, :storage, bucket: present_env.("S3_BUCKET") || "courier"
+
+  config :ex_aws,
+    access_key_id: System.fetch_env!("AWS_ACCESS_KEY_ID"),
+    secret_access_key: System.fetch_env!("AWS_SECRET_ACCESS_KEY"),
+    region: "us-east-1"
+
+  config :ex_aws, :s3,
+    scheme: present_env.("S3_SCHEME") || "http://",
+    host: System.fetch_env!("S3_HOST"),
+    port: String.to_integer(present_env.("S3_PORT") || "9000")
+
   config :courier, :google,
     client_id: System.get_env("GOOGLE_CLIENT_ID"),
     client_secret: System.get_env("GOOGLE_CLIENT_SECRET")

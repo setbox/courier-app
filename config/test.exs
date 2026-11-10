@@ -45,3 +45,18 @@ config :courier, :google,
   client_id: "id-de-teste",
   client_secret: "segredo-de-teste",
   http: Courier.Connectors.GoogleStub
+
+config :courier, :storage, bucket: "courier", impl: Courier.Core.StorageStub
+
+config :courier, :postmark,
+  base_url: "https://postmark.test",
+  http: Courier.Connectors.PostmarkStub
+
+config :courier, :webhook_http, Courier.Webhooks.HttpStub
+
+config :courier, Courier.Vault,
+  ciphers: [
+    default:
+      {Cloak.Ciphers.AES.GCM,
+       tag: "AES.GCM.V1", key: Base.decode64!("Yvd7GkRX1th7fnd71hUZAroTx8eeBh1HXLLKEO3svTQ=")}
+  ]

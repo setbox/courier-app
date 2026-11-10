@@ -9,14 +9,13 @@ defmodule CourierWeb.UserLive.Settings do
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash} current_scope={@current_scope}>
-      <div class="mx-auto max-w-md space-y-8">
-        <.header>
-          Dados de acesso
-          <:subtitle>
-            Seu e-mail é o seu login. Ao trocar, enviamos um link de confirmação para o novo
-            endereço; o acesso continua pelo atual até você confirmar.
-          </:subtitle>
-        </.header>
+      <.header>Conta e senha</.header>
+
+      <.card_section title="E-mail" class="max-w-xl">
+        <:subtitle>
+          Seu e-mail é o seu login. Ao trocar, enviamos um link de confirmação para o novo
+          endereço; o acesso continua pelo atual até você confirmar.
+        </:subtitle>
 
         <.form
           for={@email_form}
@@ -34,13 +33,13 @@ defmodule CourierWeb.UserLive.Settings do
           />
           <.button variant="primary" phx-disable-with="Enviando...">Trocar e-mail</.button>
         </.form>
+      </.card_section>
 
-        <div class="divider" />
-
-        <.header>
-          {if @has_password, do: "Trocar senha", else: "Definir senha"}
-          <:subtitle>Ao salvar, as outras sessões abertas nesta conta são encerradas.</:subtitle>
-        </.header>
+      <.card_section
+        title={if @has_password, do: "Trocar senha", else: "Definir senha"}
+        class="max-w-xl"
+      >
+        <:subtitle>Ao salvar, as outras sessões abertas nesta conta são encerradas.</:subtitle>
 
         <.form
           for={@password_form}
@@ -75,7 +74,7 @@ defmodule CourierWeb.UserLive.Settings do
           />
           <.button variant="primary" phx-disable-with="Salvando...">Salvar senha</.button>
         </.form>
-      </div>
+      </.card_section>
     </Layouts.app>
     """
   end
@@ -101,7 +100,7 @@ defmodule CourierWeb.UserLive.Settings do
 
     socket =
       socket
-      |> assign(:page_title, "Dados de acesso")
+      |> assign(:page_title, "Conta e senha")
       |> assign(:current_email, user.email)
       |> assign(:has_password, not is_nil(user.hashed_password))
       |> assign(:email_form, to_form(email_changeset))

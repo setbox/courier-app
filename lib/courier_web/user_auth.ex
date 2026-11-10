@@ -143,10 +143,7 @@ defmodule CourierWeb.UserAuth do
     if socket.assigns.current_scope && socket.assigns.current_scope.user do
       {:cont, socket}
     else
-      socket =
-        socket
-        |> Phoenix.LiveView.put_flash(:error, "Entre para acessar esta página.")
-        |> Phoenix.LiveView.redirect(to: ~p"/login")
+      socket = Phoenix.LiveView.redirect(socket, to: ~p"/login")
 
       {:halt, socket}
     end
@@ -185,7 +182,6 @@ defmodule CourierWeb.UserAuth do
       conn
     else
       conn
-      |> put_flash(:error, "Entre para acessar esta página.")
       |> maybe_store_return_to()
       |> redirect(to: ~p"/login")
       |> halt()

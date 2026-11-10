@@ -25,7 +25,7 @@ defmodule CourierWeb.UserLive.SettingsTest do
     test "redirects if user is not logged in", %{conn: conn} do
       assert {:error, {:redirect, %{to: path, flash: flash}}} = live(conn, ~p"/settings")
       assert path == ~p"/login"
-      assert %{"error" => "Entre para acessar esta página."} = flash
+      refute flash["error"]
     end
 
     test "redirects if user is not in sudo mode", %{conn: conn} do

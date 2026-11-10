@@ -327,14 +327,12 @@ defmodule CourierWeb.UserAuthTest do
       %{conn: UserAuth.fetch_current_scope_for_user(conn, [])}
     end
 
-    test "redirects if user is not authenticated", %{conn: conn} do
+    test "redirects to login without a warning if user is not authenticated", %{conn: conn} do
       conn = conn |> fetch_flash() |> UserAuth.require_authenticated_user([])
       assert conn.halted
 
       assert redirected_to(conn) == ~p"/login"
-
-      assert Phoenix.Flash.get(conn.assigns.flash, :error) ==
-               "Entre para acessar esta página."
+      refute Phoenix.Flash.get(conn.assigns.flash, :error)
     end
 
     test "stores the path to redirect to on GET", %{conn: conn} do

@@ -22,3 +22,7 @@ case Accounts.ensure_admin(admin_email, admin_password) do
   {:existing, user} ->
     IO.puts("Administrador já existe: #{user.email}")
 end
+
+case Courier.Core.Storage.ensure_bucket!() do
+  :ok -> IO.puts("Bucket #{Courier.Core.Storage.bucket()} pronto")
+end

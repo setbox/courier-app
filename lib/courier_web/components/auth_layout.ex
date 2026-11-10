@@ -8,10 +8,10 @@ defmodule CourierWeb.AuthLayout do
     ~H"""
     <div class="grid min-h-screen bg-base-100 lg:grid-cols-[30fr_70fr]">
       <div class="flex items-center justify-center px-4 py-10">
-        <div class="w-full max-w-sm space-y-6">
-          <.link navigate={~p"/"} class="flex items-center gap-2 text-xl font-extrabold">
-            <img src={~p"/images/logo.png"} alt="" class="h-7 w-auto" />
-            <span>Courier</span>
+        <div class="w-full max-w-sm space-y-8">
+          <.link navigate={~p"/"} class="flex items-center gap-2.5">
+            <img src={~p"/images/logo.svg"} alt="" class="h-7 w-auto" />
+            <span class="text-xl font-bold">Courier</span>
           </.link>
 
           {render_slot(@inner_block)}
@@ -55,7 +55,7 @@ defmodule CourierWeb.AuthLayout do
     ~H"""
     <p class="text-center text-sm text-base-content/60">
       <span :for={{{_key, label, path}, index} <- @links}>
-        <span :if={index > 0} class="ponto">·</span>
+        <span :if={index > 0} class="px-1 text-base-content/40">·</span>
         <.link navigate={path} class="link">{label}</.link>
       </span>
     </p>
