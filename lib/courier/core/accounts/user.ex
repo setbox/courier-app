@@ -27,12 +27,6 @@ defmodule Courier.Core.Accounts.User do
     |> validate_password(opts)
   end
 
-  def google_registration_changeset(user, attrs) do
-    user
-    |> email_changeset(attrs)
-    |> change(confirmed_at: DateTime.utc_now(:second))
-  end
-
   defp validate_email(changeset, opts) do
     changeset =
       changeset

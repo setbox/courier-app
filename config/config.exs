@@ -54,6 +54,11 @@ config :courier, CourierWeb.Endpoint,
 # at the `config/runtime.exs`.
 config :courier, Courier.Mailer, adapter: Swoosh.Adapters.Local
 
+config :courier, :mail_from, {"Courier", "courier@setbox.com.br"}
+config :courier, :mail_reply_to, "contato@setbox.com.br"
+
+config :courier, :env, config_env()
+
 # Configure esbuild (the version is required)
 config :esbuild,
   version: "0.25.4",

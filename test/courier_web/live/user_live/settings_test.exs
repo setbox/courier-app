@@ -17,8 +17,7 @@ defmodule CourierWeb.UserLive.SettingsTest do
     end
 
     test "offers to set a password to an account without one", %{conn: conn} do
-      {:ok, user} = Accounts.get_or_register_user_from_google(%{email: unique_user_email()})
-      {:ok, _lv, html} = conn |> log_in_user(user) |> live(~p"/settings")
+      {:ok, _lv, html} = conn |> log_in_user(passwordless_user_fixture()) |> live(~p"/settings")
 
       assert html =~ "Definir senha"
     end

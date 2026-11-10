@@ -3,15 +3,12 @@ defmodule Courier.Core.Accounts.UserNotifier do
 
   alias Courier.Mailer
 
-  @from {"Courier", "nao-responda@setbox.com.br"}
-  @reply_to "contato@setbox.com.br"
-
   defp deliver(recipient, subject, body) do
     email =
       new()
       |> to(recipient)
-      |> from(@from)
-      |> reply_to(@reply_to)
+      |> from(Application.fetch_env!(:courier, :mail_from))
+      |> reply_to(Application.fetch_env!(:courier, :mail_reply_to))
       |> subject(subject)
       |> text_body(body)
 

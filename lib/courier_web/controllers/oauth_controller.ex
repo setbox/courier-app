@@ -42,9 +42,12 @@ defmodule CourierWeb.OAuthController do
 
   defp sign_in(conn, code) do
     with {:ok, profile} <- Google.fetch_profile(code, callback_url()),
-         {:ok, user} <- Accounts.get_or_register_user_from_google(profile) do
+         {:ok, user} <- Accounts.get_user_from_google(profile) do
       UserAuth.log_in_user(conn, user)
     else
+      {:error, :not_found} ->
+        failed(conn, "Não há acesso para esta conta Google. Fale com o administrador.")
+
       {:error, :email_not_verified} ->
         failed(conn, "Esta conta Google não tem e-mail verificado, então não serve para entrar.")
 

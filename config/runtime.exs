@@ -99,23 +99,25 @@ if config_env() == :prod do
   #
   # Check `Plug.SSL` for all available options in `force_ssl`.
 
-  # ## Configuring the mailer
-  #
-  # In production you need to configure the mailer to use a different adapter.
-  # Here is an example configuration for Mailgun:
-  #
-  #     config :courier, Courier.Mailer,
-  #       adapter: Swoosh.Adapters.Mailgun,
-  #       api_key: System.get_env("MAILGUN_API_KEY"),
-  #       domain: System.get_env("MAILGUN_DOMAIN")
-  #
-  # Most non-SMTP adapters require an API client. Swoosh supports Req, Hackney,
-  # and Finch out-of-the-box. This configuration is typically done at
-  # compile-time in your config/prod.exs:
-  #
-  #     config :swoosh, :api_client, Swoosh.ApiClient.Req
-  #
-  # See https://hexdocs.pm/swoosh/Swoosh.html#module-installation for details.
+  present_env = fn name ->
+    case System.get_env(name) do
+      value when value in [nil, ""] -> nil
+      value -> value
+    end
+  end
+
+  postmark_server_api_token =
+    present_env.("POSTMARK_SERVER_API_TOKEN") ||
+      raise "environment variable POSTMARK_SERVER_API_TOKEN is missing"
+
+  config :courier, Courier.Mailer,
+    adapter: Swoosh.Adapters.Postmark,
+    api_key: postmark_server_api_token
+
+  config :courier,
+         :mail_from,
+         {present_env.("MAIL_FROM_NAME") || "Courier",
+          present_env.("MAIL_FROM") || "courier@setbox.com.br"}
 
   config :courier, :google,
     client_id: System.get_env("GOOGLE_CLIENT_ID"),

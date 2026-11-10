@@ -8,7 +8,9 @@ env = fn name ->
 end
 
 admin_email = env.("ADMIN_EMAIL") || "jackson@setbox.com.br"
-admin_password = env.("ADMIN_PASSWORD") || if(Mix.env() == :dev, do: "root@Setbox")
+
+admin_password =
+  env.("ADMIN_PASSWORD") || if(Application.get_env(:courier, :env) == :dev, do: "root@Setbox")
 
 case Accounts.ensure_admin(admin_email, admin_password) do
   {:created, user, password} ->

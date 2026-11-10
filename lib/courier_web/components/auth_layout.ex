@@ -65,7 +65,6 @@ defmodule CourierWeb.AuthLayout do
   defp links do
     [
       {:login, "Entrar", ~p"/login"},
-      {:register, "Criar conta", ~p"/register"},
       {:reset, "Esqueci minha senha", ~p"/reset-password"},
       {:confirm, "Não recebi a confirmação", ~p"/confirm"}
     ]

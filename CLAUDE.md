@@ -6,8 +6,12 @@
 instala dependências, cria o banco, migra e roda o seed. `make` sozinho lista os alvos.
 
 Seed: cria o administrador `jackson@setbox.com.br` (ou `ADMIN_EMAIL`), já confirmado. Senha de
-`ADMIN_PASSWORD`; em dev, sem ela, `root@Setbox`; fora de dev, gerada e impressa. Conta que já tem
-senha não é tocada.
+`ADMIN_PASSWORD`; em dev, sem ela, `root@Setbox`; fora de dev, gerada e impressa (variável vazia vale
+como ausente). Conta que já tem senha não é tocada. Na release: `bin/seed` (`Courier.Release.seed/0`).
+
+E-mail: Postmark em produção (`POSTMARK_SERVER_API_TOKEN`, obrigatório: sem ele a release não sobe),
+remetente de `MAIL_FROM_NAME`/`MAIL_FROM` (padrão `Courier <courier@setbox.com.br>`). Em dev,
+`Swoosh.Adapters.Local` e `/dev/mailbox`.
 
 Antes de fechar qualquer tarefa: `mix precommit`.
 
@@ -28,14 +32,16 @@ Contextos em `lib/courier/core/`, conectores em `lib/courier/connectors/`.
 
 `phx.gen.auth` adaptado ao desenho do PJ Park:
 
+- **Sem cadastro público**: só o administrador cria ou convida usuários (não há `/register`).
 - **E-mail e senha** (8 a 72 caracteres). Sem confirmar o e-mail, não entra. Confirmação vale 7
   dias; redefinição, 1 dia; sessão, 14 dias.
 - E-mail inexistente e senha errada respondem igual.
 - **Conta Google** (`Courier.Connectors.Google`, sobre o `Req`), em `/auth/google`. `state` na
-  sessão, comparado com `Plug.Crypto.secure_compare/2`. Só e-mail verificado entra. Conta nova nasce
-  confirmada e sem senha; conta não confirmada perde a senha e os tokens ao entrar pelo Google. Sem
+  sessão, comparado com `Plug.Crypto.secure_compare/2`. Só e-mail verificado entra, e só de conta que
+  já existe: o Google não cria conta. Conta não confirmada passa a confirmada e perde a senha e os
+  tokens ao entrar pelo Google. Sem
   `GOOGLE_CLIENT_ID` e `GOOGLE_CLIENT_SECRET`, o botão some. Callback em dev:
   `http://localhost:4012/auth/google/callback`.
-- Telas públicas (`/login`, `/register`, `/reset-password`, `/confirm`) usam
+- Telas públicas (`/login`, `/reset-password`, `/confirm`) usam
   `CourierWeb.AuthLayout`: formulário em 30% à esquerda, mascote em 70% à direita (`webp` com `jpg`
   de reserva; abaixo de `lg` o painel não é renderizado). O `flash_group` fica fora da grade.

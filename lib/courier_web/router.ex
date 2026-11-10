@@ -42,7 +42,6 @@ defmodule CourierWeb.Router do
 
     live_session :redirect_if_user_is_authenticated,
       on_mount: [{CourierWeb.UserAuth, :mount_current_scope}] do
-      live "/register", UserLive.Registration, :new
       live "/reset-password", UserLive.ForgotPassword, :new
       live "/reset-password/:token", UserLive.ResetPassword, :edit
       live "/confirm", UserLive.Confirmation, :new

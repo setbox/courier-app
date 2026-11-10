@@ -35,6 +35,13 @@ defmodule Courier.Core.AccountsFixtures do
     user
   end
 
+  def passwordless_user_fixture(attrs \\ %{}) do
+    attrs
+    |> user_fixture()
+    |> Ecto.Changeset.change(hashed_password: nil)
+    |> Courier.Repo.update!()
+  end
+
   def user_scope_fixture do
     user = user_fixture()
     user_scope_fixture(user)

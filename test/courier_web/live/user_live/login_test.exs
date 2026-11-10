@@ -11,6 +11,11 @@ defmodule CourierWeb.UserLive.LoginTest do
       assert html =~ "Entrar"
       assert html =~ "Esqueci minha senha"
       assert html =~ "Continuar com o Google"
+      refute html =~ "Criar conta"
+    end
+
+    test "has no public registration", %{conn: conn} do
+      assert get(conn, "/register").status == 404
     end
   end
 

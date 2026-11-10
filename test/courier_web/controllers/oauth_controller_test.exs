@@ -20,16 +20,28 @@ defmodule CourierWeb.OAuthControllerTest do
     assert redirected_to(conn) =~ "state=#{state}"
   end
 
-  test "creates a confirmed account for a verified email", %{conn: conn} do
-    email = unique_user_email()
-    GoogleStub.put_userinfo(%{"email" => email, "email_verified" => true})
+  test "logs in an existing user with a verified email", %{conn: conn} do
+    user = user_fixture()
+    GoogleStub.put_userinfo(%{"email" => user.email, "email_verified" => true})
     {conn, state} = start_flow(conn)
 
     conn = get(conn, ~p"/auth/google/callback", %{"code" => "code", "state" => state})
 
     assert redirected_to(conn) == ~p"/"
     assert get_session(conn, :user_token)
-    assert Accounts.get_user_by_email(email).confirmed_at
+  end
+
+  test "does not create an account for an unknown email", %{conn: conn} do
+    email = unique_user_email()
+    GoogleStub.put_userinfo(%{"email" => email, "email_verified" => true})
+    {conn, state} = start_flow(conn)
+
+    conn = get(conn, ~p"/auth/google/callback", %{"code" => "code", "state" => state})
+
+    assert redirected_to(conn) == ~p"/login"
+    assert Phoenix.Flash.get(conn.assigns.flash, :error) =~ "Não há acesso"
+    refute get_session(conn, :user_token)
+    refute Accounts.get_user_by_email(email)
   end
 
   test "refuses an unverified email", %{conn: conn} do

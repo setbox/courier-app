@@ -16,22 +16,16 @@ defmodule Courier.Core.Accounts do
 
   def get_user!(id), do: Repo.get!(User, id)
 
-  def change_user_registration(%User{} = user, attrs \\ %{}) do
-    User.registration_changeset(user, attrs, hash_password: false, validate_unique: false)
-  end
-
   def register_user(attrs) do
     %User{}
     |> User.registration_changeset(attrs)
     |> Repo.insert()
   end
 
-  def get_or_register_user_from_google(%{email: email}) when is_binary(email) do
+  def get_user_from_google(%{email: email}) when is_binary(email) do
     case Repo.get_by(User, email: email) do
       nil ->
-        %User{}
-        |> User.google_registration_changeset(%{email: email})
-        |> Repo.insert()
+        {:error, :not_found}
 
       %User{confirmed_at: nil} = user ->
         with {:ok, %{user: user}} <- Repo.transaction(claim_unconfirmed_multi(user)),

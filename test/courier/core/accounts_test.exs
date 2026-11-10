@@ -24,7 +24,7 @@ defmodule Courier.Core.AccountsTest do
     end
 
     test "does not return a user without password" do
-      {:ok, user} = Accounts.get_or_register_user_from_google(%{email: unique_user_email()})
+      user = passwordless_user_fixture()
       refute Accounts.get_user_by_email_and_password(user.email, "")
     end
   end
@@ -142,27 +142,25 @@ defmodule Courier.Core.AccountsTest do
     end
   end
 
-  describe "get_or_register_user_from_google/1" do
-    test "registers a confirmed user without password" do
+  describe "get_user_from_google/1" do
+    test "does not create an account for an unknown email" do
       email = unique_user_email()
-      assert {:ok, user} = Accounts.get_or_register_user_from_google(%{email: email})
-      assert user.email == email
-      assert user.confirmed_at
-      assert is_nil(user.hashed_password)
+      assert {:error, :not_found} = Accounts.get_user_from_google(%{email: email})
+      refute Accounts.get_user_by_email(email)
     end
 
     test "returns an existing confirmed user untouched" do
       %{id: id, hashed_password: hash} = user = user_fixture()
 
       assert {:ok, %User{id: ^id, hashed_password: ^hash}} =
-               Accounts.get_or_register_user_from_google(%{email: user.email})
+               Accounts.get_user_from_google(%{email: user.email})
     end
 
     test "claims an unconfirmed user dropping password and tokens" do
       user = unconfirmed_user_fixture()
       _ = Accounts.generate_user_session_token(user)
 
-      assert {:ok, claimed} = Accounts.get_or_register_user_from_google(%{email: user.email})
+      assert {:ok, claimed} = Accounts.get_user_from_google(%{email: user.email})
       assert claimed.confirmed_at
       assert is_nil(claimed.hashed_password)
       refute Repo.get_by(UserToken, user_id: user.id)
@@ -190,7 +188,7 @@ defmodule Courier.Core.AccountsTest do
     end
 
     test "sets the password of an account without one" do
-      {:ok, user} = Accounts.get_or_register_user_from_google(%{email: unique_user_email()})
+      user = passwordless_user_fixture()
       assert {:password_set, _, "root@Setbox"} = Accounts.ensure_admin(user.email, "root@Setbox")
       assert Accounts.get_user_by_email_and_password(user.email, "root@Setbox")
     end

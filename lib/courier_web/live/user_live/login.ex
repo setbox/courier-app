@@ -29,8 +29,7 @@ defmodule CourierWeb.UserLive.Login do
           Por segurança, entre de novo para continuar esta ação.
         </:subtitle>
         <:subtitle :if={is_nil(@current_scope)}>
-          Ainda não tem conta?
-          <.link navigate={~p"/register"} class="link link-primary">Criar conta</.link>
+          O acesso é criado pelo administrador da sua conta.
         </:subtitle>
       </.header>
 
