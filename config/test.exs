@@ -56,6 +56,10 @@ config :courier, :mailtrap,
   base_url: "https://mailtrap.test",
   http: Courier.Connectors.MailtrapStub
 
+config :courier, :brevo,
+  base_url: "https://brevo.test",
+  http: Courier.Connectors.BrevoStub
+
 config :courier, :webhook_http, Courier.Webhooks.HttpStub
 
 config :courier, Courier.Vault,

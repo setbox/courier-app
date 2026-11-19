@@ -36,6 +36,7 @@ defmodule CourierWeb.Router do
     pipe_through :api
 
     post "/postmark/:environment_id", PostmarkWebhookController, :create
+    post "/brevo/:environment_id", BrevoWebhookController, :create
   end
 
   scope "/", CourierWeb do
@@ -55,6 +56,8 @@ defmodule CourierWeb.Router do
       live "/apps/:app_id/environments/:id/webhook", EnvironmentLive.Webhook
       live "/emails", EmailLive.Index
       live "/emails/:id", EmailLive.Show
+      live "/providers", ProviderLive.Index
+      live "/providers/:provider", ProviderLive.Show
       live "/settings", UserLive.Settings, :edit
       live "/settings/confirm-email/:token", UserLive.Settings, :confirm_email
     end

@@ -23,6 +23,15 @@ Sabatina de 2026-11-10, que fechou o desenho da primeira entrega do envio de e-m
   e nunca chega ao destinatário. Configuração com API Token e Inbox ID; o Sandbox não manda eventos,
   então o e-mail para em `sent` e os destinatários ficam `pending`. Rastreio e message stream são do
   Postmark e não se aplicam. Trocar de provider exige informar o token novo.
+- **Brevo como terceiro provider de e-mail** (2026-11-19). Envio por `POST /v3/smtp/email` com
+  `api-key` e eventos por webhook transacional cadastrado ao salvar, como no Postmark. O Brevo só
+  documenta autenticação por credencial na URL, então o Courier põe `courier:<senha>` na URL e
+  confere com o mesmo Basic Auth do Postmark. O `messageId` vem com `<>` e os eventos às vezes sem:
+  o Courier guarda sem os sinais. `soft_bounce` e `deferred` são ignorados (o Brevo tenta de novo);
+  `hard_bounce`, `blocked` e `invalid_email` viram bounce. Respostas `400` a `403` falham na hora;
+  o resto é transitório.
+- **Menu Providers é só visão** (2026-11-19): lista os providers e os ambientes que usam cada um.
+  A credencial continua por ambiente; não há conta de provider compartilhada.
 - **Credencial do provider cifrada com Cloak** (`Courier.Vault`, chave em `CLOAK_KEY`). A tela mostra
   só os últimos caracteres.
 - **Remetente padrão na configuração**, com `from` opcional no pedido. Se o provider recusar

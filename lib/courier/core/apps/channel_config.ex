@@ -5,7 +5,7 @@ defmodule Courier.Core.Apps.ChannelConfig do
   alias Courier.Core.Apps.Environment
 
   @channels [:email]
-  @providers [:postmark, :mailtrap_sandbox]
+  @providers [:postmark, :mailtrap_sandbox, :brevo]
 
   @primary_key {:id, :binary_id, autogenerate: true}
   @foreign_key_type :binary_id
@@ -23,6 +23,8 @@ defmodule Courier.Core.Apps.ChannelConfig do
     field :postmark_webhook_id, :integer
     field :postmark_webhook_error, :string
     field :mailtrap_inbox_id, :string
+    field :brevo_webhook_id, :integer
+    field :brevo_webhook_error, :string
 
     belongs_to :environment, Environment
 
@@ -33,6 +35,27 @@ defmodule Courier.Core.Apps.ChannelConfig do
 
   def provider_label(:postmark), do: "Postmark"
   def provider_label(:mailtrap_sandbox), do: "Mailtrap Sandbox"
+  def provider_label(:brevo), do: "Brevo"
+
+  def provider_description(:postmark),
+    do: "E-mail transacional com eventos de entrega, bounce, spam, abertura e clique."
+
+  def provider_description(:mailtrap_sandbox),
+    do: "Caixa de testes: o e-mail não chega ao destinatário e não há eventos."
+
+  def provider_description(:brevo),
+    do:
+      "E-mail transacional com eventos de entrega, bounce, spam, abertura e clique; rastreio ligado na conta do Brevo."
+
+  def webhook_error(%__MODULE__{provider: :postmark, postmark_webhook_error: error}), do: error
+  def webhook_error(%__MODULE__{provider: :brevo, brevo_webhook_error: error}), do: error
+  def webhook_error(%__MODULE__{}), do: nil
+
+  def webhook_id(%__MODULE__{provider: :postmark, postmark_webhook_id: id}), do: id
+  def webhook_id(%__MODULE__{provider: :brevo, brevo_webhook_id: id}), do: id
+  def webhook_id(%__MODULE__{}), do: nil
+
+  def receives_events?(%__MODULE__{provider: provider}), do: provider in [:postmark, :brevo]
 
   def email_changeset(config, attrs) do
     config
@@ -66,7 +89,8 @@ defmodule Courier.Core.Apps.ChannelConfig do
       when is_binary(inbox) and inbox != "",
       do: credentials_present?(config)
 
-  def ready?(%__MODULE__{provider: :postmark} = config), do: credentials_present?(config)
+  def ready?(%__MODULE__{provider: provider} = config) when provider in [:postmark, :brevo],
+    do: credentials_present?(config)
 
   def ready?(_config), do: false
 
@@ -110,6 +134,7 @@ defmodule Courier.Core.Apps.ChannelConfig do
   end
 
   defp token_message(:mailtrap_sandbox), do: "informe o API Token do Mailtrap"
+  defp token_message(:brevo), do: "informe a API Key do Brevo"
   defp token_message(_provider), do: "informe o Server API Token do Postmark"
 
   defp validate_provider_fields(changeset) do
@@ -119,8 +144,11 @@ defmodule Courier.Core.Apps.ChannelConfig do
         |> validate_required([:mailtrap_inbox_id], message: "informe o Inbox ID do Mailtrap")
         |> validate_format(:mailtrap_inbox_id, ~r/^\d+$/, message: "deve ter só números")
 
-      _ ->
+      :postmark ->
         validate_required(changeset, [:message_stream], message: "não pode ficar em branco")
+
+      _ ->
+        changeset
     end
   end
 

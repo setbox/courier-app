@@ -25,8 +25,8 @@ implementar. A base do Obsidian (`~/obsidian/setbox/produtos/courier/`) descreve
 
 Recebe pedidos de envio por API REST (`/api/v1`, header `Api-Key` com o token `cl_` do ambiente),
 responde `202`, guarda (metadados no Postgres, corpo no MinIO) e enfileira no Oban, que entrega pelo
-provider do ambiente. Hoje só e-mail, pelo Postmark ou pelo Mailtrap Sandbox (ambientes de teste, sem
-eventos). Eventos do Postmark chegam por webhook e são
+provider do ambiente. Hoje só e-mail, pelo Postmark, pelo Brevo ou pelo Mailtrap Sandbox (ambientes de
+teste, sem eventos). Eventos do Postmark e do Brevo chegam por webhook e são
 repassados à aplicação cliente por webhook assinado (HMAC). Retenção de 90 dias.
 
 Vocabulário: **aplicação** (`App`, tabela `apps`; não `Application`, que é a aplicação OTP),
@@ -40,9 +40,9 @@ LiveView 1.1, Ecto/Postgres com `binary_id`, Oban (painel em `/oban`, só autent
 Swoosh, Tailwind v4 + daisyUI, **sem gettext**: mensagens em português escritas direto no código.
 
 Contextos em `lib/courier/core/` (`Accounts`, `Apps`, `Emails`, `Webhooks`, `Storage`), conectores
-em `lib/courier/connectors/` (`Google`, `Postmark`, `Mailtrap`), workers em `lib/courier/workers/`, API em
+em `lib/courier/connectors/` (`Google`, `Postmark`, `Brevo`, `Mailtrap`), workers em `lib/courier/workers/`, API em
 `lib/courier_web/controllers/api/`. Segredos cifrados com `cloak_ecto` (`Courier.Vault`, chave em
-`CLOAK_KEY`). Nos testes, Postmark, Mailtrap, MinIO e o HTTP do webhook de saída são trocados por dublês em
+`CLOAK_KEY`). Nos testes, Postmark, Brevo, Mailtrap, MinIO e o HTTP do webhook de saída são trocados por dublês em
 `test/support/stubs/`.
 
 ## Autenticação
@@ -66,7 +66,8 @@ em `lib/courier/connectors/` (`Google`, `Postmark`, `Mailtrap`), workers em `lib
 ## Visual
 
 Guia de estilos da Setbox, o mesmo do Vitrine (`../../../labs/vitrine/vitrine-app`): Manrope, vermelho
-`#AF0914` em botão e texto no claro, cubo da Setbox no cabeçalho, barra superior com menu lateral
+`#AF0914` em botão e texto no claro, menu em rail à esquerda como o backoffice do PJ Park (cubo da Setbox no
+topo, ícone e rótulo por item; abaixo de `md` vira menu na barra), barra superior com tema e conta
 (`Layouts.app`, atributo `active`), conteúdo em cartões (`CourierWeb.PanelComponents`: `card`,
 `card_section`, `empty_state`, `pill`), avisos em toast no canto inferior. O tema escuro usa os
 tokens escuros do guia de marca (`~/obsidian/setbox/marca/identidade-visual.md`): botão `#E10C19`,

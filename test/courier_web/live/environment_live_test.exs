@@ -96,6 +96,35 @@ defmodule CourierWeb.EnvironmentLiveTest do
     refute html =~ "Webhook do Postmark"
   end
 
+  test "saves a Brevo config and shows its webhook", %{conn: conn, environment: environment} do
+    {:ok, lv, _html} = live(conn, env_path(environment, "/email"))
+
+    html =
+      lv
+      |> form("#config_form", channel_config: %{provider: "brevo"})
+      |> render_change()
+
+    assert html =~ "API Key"
+    refute html =~ "Message stream"
+
+    {:ok, _lv, html} =
+      lv
+      |> form("#config_form",
+        channel_config: %{
+          provider: "brevo",
+          server_token: "xkeysib-5555",
+          from_email: "a@exemplo.com.br"
+        }
+      )
+      |> render_submit()
+      |> follow_redirect(conn, env_path(environment))
+
+    assert html =~ "Configuração salva e webhook cadastrado no Brevo."
+    assert html =~ "Webhook do Brevo"
+    assert html =~ "/webhooks/brevo/#{environment.id}"
+    refute html =~ "Webhook do Postmark"
+  end
+
   test "keeps the user on the email page when invalid", %{conn: conn, environment: environment} do
     {:ok, lv, _html} = live(conn, env_path(environment, "/email"))
     html = lv |> form("#config_form", channel_config: %{from_email: "x"}) |> render_submit()

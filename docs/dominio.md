@@ -6,7 +6,7 @@
 |---|---|---|---|
 | Aplicação | `apps` | `Courier.Core.Apps.App` | Sistema cliente (Jayio, Punhado, PJ Park). Nome e slug únicos |
 | Ambiente | `environments` | `Courier.Core.Apps.Environment` | Instância da aplicação (local, dev, prod...). Guarda o hash do token `cl_`, o webhook para o cliente e as listas `allowed_recipients` (whitelist) e `blocked_recipients` (blacklist) |
-| Configuração de canal | `channel_configs` | `Courier.Core.Apps.ChannelConfig` | Uma por (ambiente, canal). Hoje só `email`, com `postmark` (Server Token cifrado, remetente padrão, stream, rastreio e a credencial do webhook do Postmark) ou `mailtrap_sandbox` (API Token cifrado, `mailtrap_inbox_id` e remetente padrão) |
+| Configuração de canal | `channel_configs` | `Courier.Core.Apps.ChannelConfig` | Uma por (ambiente, canal). Hoje só `email`, com `postmark` (Server Token cifrado, remetente padrão, stream, rastreio e a credencial do webhook do Postmark) `brevo` (API Key cifrada, remetente padrão, `brevo_webhook_id` e a mesma credencial de webhook) ou `mailtrap_sandbox` (API Token cifrado, `mailtrap_inbox_id` e remetente padrão) |
 | E-mail | `emails` | `Courier.Core.Emails.Email` | Um pedido aceito pela API. Metadados no banco; o corpo fica no MinIO em `body_key` |
 | Destinatário | `email_recipients` | `Courier.Core.Emails.Recipient` | Cada endereço de `to`, `cc` e `bcc`, com status próprio |
 | Evento | `email_events` | `Courier.Core.Emails.Event` | Linha do tempo do e-mail: recebido, enviado, falhou e, no Postmark, os eventos de entrega |
@@ -22,7 +22,7 @@ Aplicação não é chamada de `Application` no código para não confundir com 
 | Status | Quando |
 |---|---|
 | `queued` | Aceito pela API, aguardando o worker |
-| `sent` | O provider aceitou (`MessageID` do Postmark ou o primeiro de `message_ids` do Mailtrap em `provider_message_id`) |
+| `sent` | O provider aceitou (`MessageID` do Postmark, `messageId` do Brevo sem `<>` ou o primeiro de `message_ids` do Mailtrap em `provider_message_id`) |
 | `failed` | Recusa permanente do provider, ou 10 tentativas transitórias esgotadas |
 
 **Destinatário** (`email_recipients.status`): `pending` → `delivered` → `bounced` ou
@@ -57,13 +57,19 @@ não há eventos de entrega, então o destinatário fica em `pending`.
      `400`, `401`, `403`, `404`, `413` ou `422`: `failed` na hora, com a mensagem de `errors` (sem
      código). `429` e `5xx` são transitórios.
 
-   Nos dois:
-   - `200`: `sent`, evento `sent`.
+   - **Brevo**: `Courier.Connectors.Brevo.send_email/2`, `POST https://api.brevo.com/v3/smtp/email`
+     com `api-key`. `201`: aceito. `400` a `403`: `failed` na hora, com `code: message` do Brevo.
+
+   Em todos:
+   - Aceito (`200` ou, no Brevo, `201`): `sent`, evento `sent`.
    - Recusa permanente: o job é cancelado.
    - Outro status, timeout ou MinIO indisponível: nova tentativa com o backoff do Oban; na décima,
      `failed`.
-3. **Eventos do Postmark** (`POST /webhooks/postmark/:environment_id`, Basic Auth do ambiente). Só
-   Postmark: o Mailtrap Sandbox não manda eventos.
+3. **Eventos do Postmark** (`POST /webhooks/postmark/:environment_id`, Basic Auth do ambiente) e
+   **do Brevo** (`POST /webhooks/brevo/:environment_id`, mesma credencial, aplicados por
+   `Courier.Core.Emails.apply_brevo_event/2`: `delivered` → entrega; `hard_bounce`, `blocked`,
+   `invalid_email` → bounce; `spam`; `opened`; `click`; `unsubscribed`; o resto é ignorado). O
+   Mailtrap Sandbox não manda eventos.
    `Courier.Core.Emails.apply_postmark_event/2` acha o e-mail pelo `MessageID` dentro do ambiente,
    atualiza o destinatário e grava o evento. Mensagem desconhecida ou tipo não tratado responde `200`
    e é ignorado, para o Postmark não reenviar em loop.
@@ -79,5 +85,5 @@ não há eventos de entrega, então o destinatário fica em `pending`.
 |---|---|---|
 | Token do ambiente | `cl_` + 32 bytes aleatórios (base64url) | SHA-256 em `client_token_hash`, últimos 4 em `client_token_hint`. Mostrado uma vez |
 | Segredo do webhook do cliente | `whsec_` + 32 bytes | Cifrado (`Courier.Vault`) em `environments.webhook_secret`. Mostrado uma vez |
-| Server Token do Postmark ou API Token do Mailtrap | o do provider | Cifrado em `channel_configs.server_token`; a tela mostra só os últimos 4 |
-| Senha do webhook do Postmark | 24 bytes aleatórios | Cifrada em `channel_configs.inbound_password`; visível na tela para cadastro manual. Usuário fixo `courier` |
+| Server Token do Postmark, API Key do Brevo ou API Token do Mailtrap | o do provider | Cifrado em `channel_configs.server_token`; a tela mostra só os últimos 4 |
+| Senha do webhook do Postmark e do Brevo | 24 bytes aleatórios | Cifrada em `channel_configs.inbound_password`; visível na tela para cadastro manual. Usuário fixo `courier` |

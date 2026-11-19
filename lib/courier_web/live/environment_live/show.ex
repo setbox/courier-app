@@ -29,7 +29,7 @@ defmodule CourierWeb.EnvironmentLive.Show do
   end
 
   def handle_event("register_inbound", _params, socket) do
-    config = Apps.register_postmark_webhook(socket.assigns.config, inbound_url(socket))
+    config = Apps.register_webhook(socket.assigns.config, inbound_url(socket))
     {:noreply, socket |> assign(:config, config) |> put_inbound_flash(config)}
   end
 
@@ -47,13 +47,24 @@ defmodule CourierWeb.EnvironmentLive.Show do
      |> assign(:revealed_secret, secret)}
   end
 
-  defp put_inbound_flash(socket, %ChannelConfig{postmark_webhook_error: nil}),
-    do: put_flash(socket, :info, "Webhook cadastrado no Postmark.")
+  defp put_inbound_flash(socket, config) do
+    label = ChannelConfig.provider_label(config.provider)
 
-  defp put_inbound_flash(socket, %ChannelConfig{}),
-    do: put_flash(socket, :warning, "O webhook não foi cadastrado no Postmark.")
+    if ChannelConfig.webhook_error(config),
+      do: put_flash(socket, :warning, "O webhook não foi cadastrado no #{label}."),
+      else: put_flash(socket, :info, "Webhook cadastrado no #{label}.")
+  end
 
-  defp inbound_url(socket), do: url(~p"/webhooks/postmark/#{socket.assigns.environment}")
+  defp inbound_url(socket), do: inbound_url(socket.assigns.environment, socket.assigns.config)
+
+  defp inbound_url(environment, %ChannelConfig{provider: :brevo}),
+    do: url(~p"/webhooks/brevo/#{environment}")
+
+  defp inbound_url(environment, _config), do: url(~p"/webhooks/postmark/#{environment}")
+
+  defp token_label(:postmark), do: "Server API Token"
+  defp token_label(:brevo), do: "API Key"
+  defp token_label(_provider), do: "API Token"
 
   defp list_summary([]), do: "Vazia"
   defp list_summary(entries), do: Enum.join(entries, ", ")
@@ -63,9 +74,7 @@ defmodule CourierWeb.EnvironmentLive.Show do
 
   @impl true
   def render(assigns) do
-    assigns =
-      assigns
-      |> assign(:inbound_url, url(~p"/webhooks/postmark/#{assigns.environment}"))
+    assigns = assign(assigns, :inbound_url, inbound_url(assigns.environment, assigns.config))
 
     ~H"""
     <Layouts.app flash={@flash} current_scope={@current_scope} active={:apps}>
@@ -134,9 +143,7 @@ defmodule CourierWeb.EnvironmentLive.Show do
         >
           <dt class="font-semibold text-neutral">Provider</dt>
           <dd>{ChannelConfig.provider_label(@config.provider)}</dd>
-          <dt class="font-semibold text-neutral">
-            {if @config.provider == :postmark, do: "Server API Token", else: "API Token"}
-          </dt>
+          <dt class="font-semibold text-neutral">{token_label(@config.provider)}</dt>
           <dd><code>••••{@config.server_token_hint}</code></dd>
           <dt class="font-semibold text-neutral">Remetente</dt>
           <dd>{@config.from_name} &lt;{@config.from_email}&gt;</dd>
@@ -147,7 +154,8 @@ defmodule CourierWeb.EnvironmentLive.Show do
             <dd>{yes_no(@config.track_opens)}</dd>
             <dt class="font-semibold text-neutral">Rastrear cliques</dt>
             <dd>{yes_no(@config.track_links)}</dd>
-          <% else %>
+          <% end %>
+          <%= if @config.provider == :mailtrap_sandbox do %>
             <dt class="font-semibold text-neutral">Inbox ID</dt>
             <dd><code>{@config.mailtrap_inbox_id}</code></dd>
           <% end %>
@@ -156,6 +164,9 @@ defmodule CourierWeb.EnvironmentLive.Show do
         <p :if={@config && @config.provider == :mailtrap_sandbox} class="text-sm text-neutral">
           Sandbox: os e-mails ficam na caixa de testes do Mailtrap e não chegam aos destinatários.
           Não há eventos de entrega, abertura ou clique.
+        </p>
+        <p :if={@config && @config.provider == :brevo} class="text-sm text-neutral">
+          Rastreio de abertura e clique é ligado na conta do Brevo.
         </p>
 
         <div>
@@ -168,21 +179,33 @@ defmodule CourierWeb.EnvironmentLive.Show do
         </div>
       </.card_section>
 
-      <.card_section :if={@config && @config.provider == :postmark} title="Webhook do Postmark">
-        <:subtitle>
+      <.card_section
+        :if={@config && ChannelConfig.receives_events?(@config)}
+        title={"Webhook do #{ChannelConfig.provider_label(@config.provider)}"}
+      >
+        <:subtitle :if={@config.provider == :postmark}>
           O Courier cadastra este webhook no Postmark ao salvar a configuração. Para cadastrar à mão,
           use a URL e a credencial abaixo (Basic Auth), com todos os eventos marcados.
         </:subtitle>
+        <:subtitle :if={@config.provider == :brevo}>
+          O Courier cadastra este webhook transacional no Brevo ao salvar a configuração. Para
+          cadastrar à mão, ponha o usuário e a senha abaixo na URL
+          (<code>https://usuário:senha@...</code>).
+        </:subtitle>
 
         <div
-          :if={@config.postmark_webhook_error}
+          :if={ChannelConfig.webhook_error(@config)}
           id="inbound-error"
           class="rounded-box border border-error/30 bg-error/10 p-4 text-sm text-error"
         >
-          {@config.postmark_webhook_error}
+          {ChannelConfig.webhook_error(@config)}
         </div>
-        <div :if={is_nil(@config.postmark_webhook_error) && @config.postmark_webhook_id}>
-          <.pill tone={:ok}>Cadastrado no Postmark (webhook {@config.postmark_webhook_id})</.pill>
+        <div :if={is_nil(ChannelConfig.webhook_error(@config)) && ChannelConfig.webhook_id(@config)}>
+          <.pill tone={:ok}>
+            Cadastrado no {ChannelConfig.provider_label(@config.provider)} (webhook {ChannelConfig.webhook_id(
+              @config
+            )})
+          </.pill>
         </div>
 
         <dl class="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-[180px_minmax(0,1fr)]">
@@ -195,10 +218,12 @@ defmodule CourierWeb.EnvironmentLive.Show do
         </dl>
 
         <div class="flex flex-wrap gap-2">
-          <.button phx-click="register_inbound">Cadastrar de novo no Postmark</.button>
+          <.button phx-click="register_inbound">
+            Cadastrar de novo no {ChannelConfig.provider_label(@config.provider)}
+          </.button>
           <.button
             phx-click="regenerate_inbound"
-            data-confirm="A senha atual deixa de valer. O Courier recadastra o webhook no Postmark. Continuar?"
+            data-confirm={"A senha atual deixa de valer. O Courier recadastra o webhook no #{ChannelConfig.provider_label(@config.provider)}. Continuar?"}
           >
             Gerar nova senha
           </.button>

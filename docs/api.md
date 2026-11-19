@@ -40,7 +40,7 @@ estável; a mensagem pode mudar.
 | `cc`, `bcc` | lista de e-mails | não | Máximo de 50 destinatários somando `to`, `cc` e `bcc` |
 | `from` | texto | não | `email@dominio` ou `Nome <email@dominio>`. Padrão: o da configuração. No Postmark, precisa estar verificado |
 | `reply_to` | texto | não | |
-| `tag` | texto | não | Tag do Postmark ou `category` do Mailtrap |
+| `tag` | texto | não | Tag do Postmark, `tags` do Brevo ou `category` do Mailtrap |
 | `message_stream` | texto | não | Padrão: o da configuração (`outbound`) |
 | `metadata` | objeto | não | Até 50 chaves, valores simples, 8 KB. Volta nas consultas e nos webhooks |
 | `track_opens`, `track_links` | booleano | não | Padrão: o da configuração |
@@ -69,6 +69,9 @@ Idempotent-Replayed: false
 ```
 
 `202` quer dizer aceito e guardado; o envio acontece em seguida, pela fila.
+
+Num ambiente com Brevo, `metadata`, `message_stream`, `track_opens` e `track_links` não vão ao
+provider (o rastreio é da conta do Brevo); os eventos chegam como no Postmark.
 
 Num ambiente com Mailtrap Sandbox o e-mail vai para a caixa de testes do Mailtrap e não chega ao
 destinatário. `metadata` vira `custom_variables` (valores como texto); `message_stream`,

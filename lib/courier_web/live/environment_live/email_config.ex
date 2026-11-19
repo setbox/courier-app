@@ -25,7 +25,7 @@ defmodule CourierWeb.EnvironmentLive.EmailConfig do
 
   def handle_event("save", %{"channel_config" => params}, socket) do
     environment = socket.assigns.environment
-    inbound_url = url(~p"/webhooks/postmark/#{environment}")
+    inbound_url = inbound_url(environment, params["provider"])
 
     case Apps.save_email_config(environment, params, inbound_url) do
       {:ok, config} ->
@@ -39,6 +39,9 @@ defmodule CourierWeb.EnvironmentLive.EmailConfig do
     end
   end
 
+  defp inbound_url(environment, "brevo"), do: url(~p"/webhooks/brevo/#{environment}")
+  defp inbound_url(environment, _provider), do: url(~p"/webhooks/postmark/#{environment}")
+
   defp assign_form(socket, changeset) do
     socket
     |> assign(:form, to_form(changeset))
@@ -49,16 +52,28 @@ defmodule CourierWeb.EnvironmentLive.EmailConfig do
     Enum.map(ChannelConfig.providers(), &{ChannelConfig.provider_label(&1), &1})
   end
 
-  defp flash_kind(%ChannelConfig{postmark_webhook_error: nil}), do: :info
-  defp flash_kind(%ChannelConfig{}), do: :warning
+  defp flash_kind(config) do
+    if ChannelConfig.webhook_error(config), do: :warning, else: :info
+  end
 
-  defp saved_message(%ChannelConfig{provider: :mailtrap_sandbox}), do: "Configuração salva."
+  defp saved_message(config) do
+    label = ChannelConfig.provider_label(config.provider)
 
-  defp saved_message(%ChannelConfig{postmark_webhook_error: nil}),
-    do: "Configuração salva e webhook cadastrado no Postmark."
+    cond do
+      not ChannelConfig.receives_events?(config) ->
+        "Configuração salva."
 
-  defp saved_message(%ChannelConfig{}),
-    do: "Configuração salva, mas o webhook não foi cadastrado no Postmark."
+      ChannelConfig.webhook_error(config) ->
+        "Configuração salva, mas o webhook não foi cadastrado no #{label}."
+
+      true ->
+        "Configuração salva e webhook cadastrado no #{label}."
+    end
+  end
+
+  defp token_label(:postmark), do: "Server API Token"
+  defp token_label(:brevo), do: "API Key"
+  defp token_label(_provider), do: "API Token"
 
   @impl true
   def render(assigns) do
@@ -93,11 +108,14 @@ defmodule CourierWeb.EnvironmentLive.EmailConfig do
           >
             Sandbox: o e-mail fica na caixa de testes do Mailtrap e não chega ao destinatário.
           </p>
+          <p :if={@provider == :brevo} class="mb-2 self-end text-sm text-neutral sm:pb-2">
+            Rastreio de abertura e clique é ligado na conta do Brevo.
+          </p>
           <div :if={@provider == :postmark} class="hidden sm:block"></div>
           <.input
             field={@form[:server_token]}
             type="password"
-            label={if @provider == :mailtrap_sandbox, do: "API Token", else: "Server API Token"}
+            label={token_label(@provider)}
             value=""
             autocomplete="off"
             placeholder={

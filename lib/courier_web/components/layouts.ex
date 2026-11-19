@@ -9,80 +9,110 @@ defmodule CourierWeb.Layouts do
   slot :inner_block, required: true
 
   def app(assigns) do
+    assigns = assign(assigns, :items, nav_items())
+
     ~H"""
-    <header class="sticky top-0 z-30 flex h-14 items-center justify-between gap-4 border-b border-base-300 bg-base-100 px-4 sm:px-6">
-      <.link navigate={~p"/"} class="flex items-center gap-2.5">
-        <img src={~p"/images/logo.svg"} alt="" class="h-6 w-auto" />
-        <span class="text-lg font-bold">Courier</span>
-      </.link>
-      <div class="flex items-center gap-3">
-        <.theme_toggle />
-        <div :if={@current_scope} class="dropdown dropdown-end">
-          <div
-            tabindex="0"
-            role="button"
-            aria-label="Menu da conta"
-            class="flex min-h-9 cursor-pointer items-center gap-2 rounded-lg px-2 hover:bg-base-200"
-          >
-            <span class="flex size-7 items-center justify-center rounded-full bg-primary text-xs font-bold text-white uppercase">
-              {String.first(@current_scope.user.email)}
-            </span>
-            <span class="hidden max-w-56 truncate text-sm font-semibold sm:inline">
-              {@current_scope.user.email}
-            </span>
-            <.icon name="hero-chevron-down-mini" class="size-4 text-neutral" />
-          </div>
-          <ul
-            tabindex="0"
-            class="dropdown-content menu z-40 mt-2 w-60 rounded-box border border-base-300 bg-base-100 p-2 shadow-lg"
-          >
-            <li><.link navigate={~p"/settings"}>Conta e senha</.link></li>
-            <li><.link href={~p"/logout"} method="delete">Sair</.link></li>
-          </ul>
-        </div>
-      </div>
-    </header>
-    <div class="min-h-[calc(100vh-3.5rem)] lg:grid lg:grid-cols-[232px_minmax(0,1fr)]">
-      <aside class="border-b border-base-300 bg-base-100 px-4 py-5 lg:sticky lg:top-14 lg:h-[calc(100vh-3.5rem)] lg:overflow-y-auto lg:border-r lg:border-b-0">
-        <nav aria-label="Principal" class="flex flex-col gap-0.5">
-          <.nav_link :for={{key, label, path} <- nav_items()} active={@active == key} path={path}>
+    <div class="flex min-h-screen">
+      <nav
+        class="sticky top-0 hidden h-screen w-[5.5rem] shrink-0 flex-col items-center gap-0.5 overflow-y-auto border-r border-base-300 bg-base-200 py-3 md:flex"
+        aria-label="Principal"
+      >
+        <.link
+          navigate={~p"/"}
+          class="mb-2 flex size-12 items-center justify-center"
+          aria-label="Courier, aplicações"
+        >
+          <img src={~p"/images/logo.svg"} alt="" class="h-8 w-auto" />
+        </.link>
+        <.link
+          :for={{key, label, path, icon} <- @items}
+          navigate={path}
+          class="group flex w-20 flex-col items-center gap-1 py-1"
+          aria-current={@active == key && "page"}
+        >
+          <span class={[
+            "flex h-8 w-14 items-center justify-center rounded-full transition-colors",
+            if(@active == key, do: "bg-primary text-primary-content", else: "group-hover:bg-base-300")
+          ]}>
+            <.icon name={icon} class="size-5" />
+          </span>
+          <span class={["text-[0.6875rem] leading-tight", @active == key && "font-bold"]}>
             {label}
-          </.nav_link>
-        </nav>
-      </aside>
-      <main class="min-w-0 px-4 py-8 sm:px-10">
-        <div class="flex flex-col gap-6">
-          {render_slot(@inner_block)}
-        </div>
-      </main>
+          </span>
+        </.link>
+      </nav>
+
+      <div class="flex min-w-0 flex-1 flex-col">
+        <header class="sticky top-0 z-30 flex h-14 items-center justify-between gap-4 border-b border-base-300 bg-base-100 px-4 sm:px-6">
+          <div class="flex items-center gap-2">
+            <div class="dropdown md:hidden">
+              <div
+                tabindex="0"
+                role="button"
+                class="btn btn-ghost btn-sm btn-square"
+                aria-label="Menu"
+              >
+                <.icon name="hero-bars-3" class="size-5" />
+              </div>
+              <ul
+                tabindex="0"
+                class="dropdown-content menu z-40 mt-2 w-60 rounded-box border border-base-300 bg-base-100 p-2 shadow-lg"
+              >
+                <li :for={{key, label, path, icon} <- @items}>
+                  <.link navigate={path} class={@active == key && "menu-active"}>
+                    <.icon name={icon} class="size-4" /> {label}
+                  </.link>
+                </li>
+              </ul>
+            </div>
+            <.link navigate={~p"/"} class="flex items-center gap-2.5">
+              <img src={~p"/images/logo.svg"} alt="" class="h-6 w-auto md:hidden" />
+              <span class="text-lg font-bold">Courier</span>
+            </.link>
+          </div>
+          <div class="flex items-center gap-3">
+            <.theme_toggle />
+            <div :if={@current_scope} class="dropdown dropdown-end">
+              <div
+                tabindex="0"
+                role="button"
+                aria-label="Menu da conta"
+                class="flex min-h-9 cursor-pointer items-center gap-2 rounded-lg px-2 hover:bg-base-200"
+              >
+                <span class="flex size-7 items-center justify-center rounded-full bg-primary text-xs font-bold text-white uppercase">
+                  {String.first(@current_scope.user.email)}
+                </span>
+                <span class="hidden max-w-56 truncate text-sm font-semibold sm:inline">
+                  {@current_scope.user.email}
+                </span>
+                <.icon name="hero-chevron-down-mini" class="size-4 text-neutral" />
+              </div>
+              <ul
+                tabindex="0"
+                class="dropdown-content menu z-40 mt-2 w-60 rounded-box border border-base-300 bg-base-100 p-2 shadow-lg"
+              >
+                <li><.link navigate={~p"/settings"}>Conta e senha</.link></li>
+                <li><.link href={~p"/logout"} method="delete">Sair</.link></li>
+              </ul>
+            </div>
+          </div>
+        </header>
+        <main class="min-w-0 flex-1 px-4 py-8 sm:px-10">
+          <div class="flex flex-col gap-6">
+            {render_slot(@inner_block)}
+          </div>
+        </main>
+      </div>
     </div>
     <.flash_group flash={@flash} />
     """
   end
 
-  attr :active, :boolean, default: false
-  attr :path, :string, required: true
-  slot :inner_block, required: true
-
-  defp nav_link(assigns) do
-    ~H"""
-    <.link
-      navigate={@path}
-      aria-current={@active && "page"}
-      class={[
-        "flex min-h-11 items-center rounded-lg px-3 text-sm font-semibold transition-colors",
-        if(@active, do: "bg-primary/10 text-primary", else: "hover:bg-base-200")
-      ]}
-    >
-      {render_slot(@inner_block)}
-    </.link>
-    """
-  end
-
   defp nav_items do
     [
-      {:apps, "Aplicações", ~p"/"},
-      {:emails, "E-mails", ~p"/emails"}
+      {:apps, "Aplicações", ~p"/", "hero-squares-2x2"},
+      {:emails, "E-mails", ~p"/emails", "hero-envelope"},
+      {:providers, "Providers", ~p"/providers", "hero-server-stack"}
     ]
   end
 

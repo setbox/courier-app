@@ -55,6 +55,25 @@ defmodule Courier.MessagingFixtures do
     {environment, token}
   end
 
+  def brevo_environment_fixture(attrs \\ %{}) do
+    environment = environment_fixture(attrs)
+
+    {:ok, _config} =
+      Apps.save_email_config(
+        environment,
+        %{
+          "provider" => "brevo",
+          "server_token" => "xkeysib-1234",
+          "from_email" => "naoresponda@exemplo.com.br",
+          "from_name" => "Exemplo"
+        },
+        "https://courier.test/webhooks/brevo/#{environment.id}"
+      )
+
+    {:ok, environment, token} = Apps.regenerate_client_token(environment)
+    {environment, token}
+  end
+
   def email_params(attrs \\ %{}) do
     Map.merge(
       %{

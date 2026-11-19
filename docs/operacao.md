@@ -6,7 +6,7 @@
 |---|---|---|
 | `DATABASE_URL` | sim | Postgres |
 | `SECRET_KEY_BASE` | sim | Phoenix |
-| `PHX_HOST` | sim | Monta a URL do webhook do Postmark (`https://<host>/webhooks/postmark/<ambiente>`) |
+| `PHX_HOST` | sim | Monta a URL do webhook do Postmark (`https://<host>/webhooks/postmark/<ambiente>`) e do Brevo (`/webhooks/brevo/<ambiente>`) |
 | `CLOAK_KEY` | sim | Chave AES-256 (base64, 32 bytes) que cifra Server Tokens e segredos. **Perder a chave torna as credenciais ilegíveis**: guarde fora da VPS (issue #1). Gere com `openssl rand -base64 32` |
 | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` | sim | Credencial do MinIO |
 | `S3_HOST` | sim | Host do MinIO na rede interna |
@@ -35,6 +35,15 @@ cadastra (ou atualiza) o webhook do server com todos os eventos, apontando para
 falhar, o erro aparece na tela e a configuração continua salva; dá para cadastrar de novo ou à mão.
 
 Em dev o Postmark não alcança `localhost`, então os eventos de entrega não chegam; o envio funciona.
+
+## Brevo
+
+Na tela do e-mail do ambiente, escolha "Brevo" e informe a API Key (SMTP & API → API Keys). O
+remetente precisa estar verificado no Brevo. Ao salvar, o Courier cadastra um webhook transacional
+(`POST /v3/webhooks`) com os eventos `delivered`, `hardBounce`, `blocked`, `invalid`, `spam`,
+`opened`, `click` e `unsubscribed`, apontando para `https://courier:<senha>@<host>/webhooks/brevo/<ambiente>`:
+o Brevo só documenta autenticação por credencial na URL. Rastreio de abertura e clique é ligado na
+conta do Brevo, não por e-mail. O Brevo limita a 40 webhooks por conta.
 
 ## Mailtrap Sandbox
 

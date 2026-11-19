@@ -1,7 +1,7 @@
 defmodule Courier.Workers.SendEmail do
   use Oban.Worker, queue: :emails, max_attempts: 10
 
-  alias Courier.Connectors.{Mailtrap, Postmark}
+  alias Courier.Connectors.{Brevo, Mailtrap, Postmark}
   alias Courier.Core.Apps
   alias Courier.Core.Apps.ChannelConfig
   alias Courier.Core.Emails
@@ -61,8 +61,27 @@ defmodule Courier.Workers.SendEmail do
         mailtrap_payload(email, body)
       )
 
+  defp send_to_provider(%ChannelConfig{provider: :brevo} = config, email, body),
+    do: Brevo.send_email(config.server_token, brevo_payload(email, body))
+
   defp send_to_provider(%ChannelConfig{} = config, email, body),
     do: Postmark.send_email(config.server_token, payload(email, body))
+
+  def brevo_payload(%Email{} = email, body) do
+    %{
+      "sender" => mailbox(email.from),
+      "to" => mailboxes(email, :to),
+      "cc" => mailboxes(email, :cc),
+      "bcc" => mailboxes(email, :bcc),
+      "replyTo" => email.reply_to && mailbox(email.reply_to),
+      "subject" => email.subject,
+      "htmlContent" => body.html_body,
+      "textContent" => body.text_body,
+      "tags" => email.tag && [email.tag]
+    }
+    |> Enum.reject(fn {_key, value} -> value in [nil, "", []] end)
+    |> Map.new()
+  end
 
   def mailtrap_payload(%Email{} = email, body) do
     %{

@@ -157,4 +157,72 @@ defmodule Courier.Workers.SendEmailTest do
       assert Repo.get!(Email, email.id).status == :queued
     end
   end
+
+  describe "Brevo" do
+    alias Courier.Connectors.BrevoStub
+
+    setup do
+      {environment, _token} = brevo_environment_fixture()
+
+      email =
+        email_fixture(environment, %{
+          "cc" => ["bia@exemplo.com.br"],
+          "reply_to" => "Suporte <suporte@exemplo.com.br>",
+          "tag" => "welcome"
+        })
+
+      %{email: email}
+    end
+
+    test "sends to Brevo and stores the message id without brackets", %{email: email} do
+      BrevoStub.respond_with(fn _ ->
+        {:ok, %{status: 201, body: %{"messageId" => "<2026.42@smtp-relay.mailin.fr>"}}}
+      end)
+
+      assert_received {:brevo_request, _webhook}
+      assert :ok = perform_job(SendEmail, %{email_id: email.id})
+
+      assert_received {:brevo_request, opts}
+      assert opts[:url] == "https://brevo.test/smtp/email"
+      assert {"api-key", "xkeysib-1234"} in opts[:headers]
+
+      assert opts[:json] == %{
+               "sender" => %{"email" => "naoresponda@exemplo.com.br", "name" => "Exemplo"},
+               "to" => [%{"email" => "ana@exemplo.com.br"}],
+               "cc" => [%{"email" => "bia@exemplo.com.br"}],
+               "replyTo" => %{"email" => "suporte@exemplo.com.br", "name" => "Suporte"},
+               "subject" => "Bem-vinda",
+               "htmlContent" => "<p>Olá</p>",
+               "textContent" => "Olá",
+               "tags" => ["welcome"]
+             }
+
+      email = Repo.get!(Email, email.id)
+      assert email.status == :sent
+      assert email.provider_message_id == "2026.42@smtp-relay.mailin.fr"
+    end
+
+    test "a Brevo rejection fails at once", %{email: email} do
+      BrevoStub.respond_with(fn _ ->
+        {:ok,
+         %{status: 400, body: %{"code" => "invalid_parameter", "message" => "sender is invalid"}}}
+      end)
+
+      assert {:cancel, "invalid_parameter: sender is invalid"} =
+               perform_job(SendEmail, %{email_id: email.id})
+
+      email = Repo.get!(Email, email.id)
+      assert email.status == :failed
+      assert email.error_message == "invalid_parameter: sender is invalid"
+    end
+
+    test "a server error retries", %{email: email} do
+      BrevoStub.respond_with(fn _ -> {:ok, %{status: 503, body: ""}} end)
+
+      assert {:error, "HTTP 503: resposta HTTP 503"} =
+               perform_job(SendEmail, %{email_id: email.id}, attempt: 1)
+
+      assert Repo.get!(Email, email.id).status == :queued
+    end
+  end
 end

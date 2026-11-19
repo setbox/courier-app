@@ -42,6 +42,7 @@ config :ex_aws,
 
 config :courier, :postmark, base_url: "https://api.postmarkapp.com"
 config :courier, :mailtrap, base_url: "https://sandbox.api.mailtrap.io"
+config :courier, :brevo, base_url: "https://api.brevo.com/v3"
 
 # Configures the endpoint
 config :courier, CourierWeb.Endpoint,

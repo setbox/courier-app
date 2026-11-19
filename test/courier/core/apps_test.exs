@@ -3,7 +3,7 @@ defmodule Courier.Core.AppsTest do
 
   import Courier.MessagingFixtures
 
-  alias Courier.Connectors.PostmarkStub
+  alias Courier.Connectors.{BrevoStub, PostmarkStub}
   alias Courier.Core.Apps
   alias Courier.Core.Apps.ChannelConfig
 
@@ -148,6 +148,103 @@ defmodule Courier.Core.AppsTest do
         Apps.save_email_config(environment, Map.put(attrs, "mailtrap_inbox_id", "abc"), "u")
 
       assert "deve ter só números" in errors_on(changeset).mailtrap_inbox_id
+    end
+
+    test "saves a Brevo config and registers the webhook with Basic Auth in the URL" do
+      environment = environment_fixture()
+
+      {:ok, config} =
+        Apps.save_email_config(
+          environment,
+          %{
+            "provider" => "brevo",
+            "server_token" => "xkeysib-9876",
+            "from_email" => "a@exemplo.com.br"
+          },
+          "https://courier.test/webhooks/brevo/#{environment.id}"
+        )
+
+      assert config.provider == :brevo
+      assert config.brevo_webhook_id == 77
+      assert is_nil(config.brevo_webhook_error)
+      assert ChannelConfig.ready?(config)
+
+      assert_received {:brevo_request, opts}
+      assert opts[:method] == :post
+      assert opts[:url] == "https://brevo.test/webhooks"
+      assert {"api-key", "xkeysib-9876"} in opts[:headers]
+      assert opts[:json]["type"] == "transactional"
+      assert "delivered" in opts[:json]["events"]
+
+      assert opts[:json]["url"] ==
+               "https://courier:#{config.inbound_password}@courier.test/webhooks/brevo/#{environment.id}"
+
+      refute_received {:postmark_request, _}
+    end
+
+    test "updates the existing Brevo webhook and creates it again when gone" do
+      {environment, _token} = brevo_environment_fixture()
+      config = Apps.email_config(environment)
+      assert_received {:brevo_request, _create}
+
+      config = Apps.register_webhook(config, "https://courier.test/hook")
+      assert_received {:brevo_request, opts}
+      assert opts[:method] == :put
+      assert opts[:url] == "https://brevo.test/webhooks/77"
+      assert config.brevo_webhook_id == 77
+
+      BrevoStub.respond_with(fn opts ->
+        case opts[:method] do
+          :put -> {:ok, %{status: 404, body: %{"code" => "document_not_found"}}}
+          :post -> {:ok, %{status: 201, body: %{"id" => 88}}}
+        end
+      end)
+
+      assert Apps.register_webhook(config, "https://courier.test/hook").brevo_webhook_id == 88
+    end
+
+    test "keeps the Brevo error when the webhook is refused" do
+      BrevoStub.respond_with(fn _ ->
+        {:ok, %{status: 401, body: %{"code" => "unauthorized", "message" => "Key not found"}}}
+      end)
+
+      {:ok, config} =
+        Apps.save_email_config(
+          environment_fixture(),
+          %{"provider" => "brevo", "server_token" => "bad", "from_email" => "a@exemplo.com.br"},
+          "https://courier.test/hook"
+        )
+
+      assert config.brevo_webhook_error == "Brevo: unauthorized: Key not found"
+      assert ChannelConfig.webhook_error(config) == config.brevo_webhook_error
+    end
+
+    test "switching from Postmark to Brevo clears the Postmark webhook" do
+      {environment, _token} = configured_environment_fixture()
+      assert Apps.email_config(environment).postmark_webhook_id
+
+      {:ok, config} =
+        Apps.save_email_config(
+          environment,
+          %{"provider" => "brevo", "server_token" => "xkeysib-1"},
+          "https://courier.test/hook"
+        )
+
+      assert is_nil(config.postmark_webhook_id)
+      assert config.brevo_webhook_id == 77
+    end
+
+    test "counts and lists the environments by provider" do
+      {postmark, _token} = configured_environment_fixture()
+      {brevo, _token} = brevo_environment_fixture()
+
+      counts = Apps.count_environments_by_provider()
+      assert counts[:postmark] >= 1
+      assert counts[:brevo] >= 1
+
+      ids = Enum.map(Apps.list_environments_using(:brevo), & &1.id)
+      assert brevo.id in ids
+      refute postmark.id in ids
     end
 
     test "switching the provider requires a new token" do

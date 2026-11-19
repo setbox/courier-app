@@ -1,6 +1,7 @@
 defmodule Courier.Core.Emails do
   import Ecto.Query, warn: false
 
+  alias Courier.Connectors.Brevo
   alias Courier.Core.Apps
   alias Courier.Core.Apps.{ChannelConfig, Environment}
   alias Courier.Core.Emails.{Email, Event, Recipient, Request}
@@ -381,7 +382,7 @@ defmodule Courier.Core.Emails do
         recipient = find_recipient(email, recipient_address(event_type, payload))
         occurred_at = occurred_at(event_type, payload)
 
-        update_recipient(recipient, event_type, occurred_at, payload)
+        update_recipient(recipient, event_type, occurred_at, bounce_detail(payload))
         event = record_event!(email, event_type, occurred_at, recipient, event_data(payload))
 
         {:ok, event}
@@ -393,6 +394,67 @@ defmodule Courier.Core.Emails do
   end
 
   def apply_postmark_event(_environment, _payload), do: {:ok, :ignored}
+
+  def apply_brevo_event(
+        %Environment{} = environment,
+        %{"event" => type, "message-id" => message_id} = payload
+      )
+      when is_binary(message_id) do
+    with {:ok, event_type} <- brevo_event_type(type),
+         %Email{} = email <-
+           find_by_provider_message_id(environment, Brevo.normalize_message_id(message_id)) do
+      Repo.transact(fn ->
+        recipient = find_recipient(email, payload["email"])
+        occurred_at = brevo_occurred_at(payload)
+
+        update_recipient(recipient, event_type, occurred_at, brevo_bounce_detail(payload))
+        event = record_event!(email, event_type, occurred_at, recipient, payload)
+
+        {:ok, event}
+      end)
+    else
+      :ignore -> {:ok, :ignored}
+      nil -> {:ok, :unknown_message}
+    end
+  end
+
+  def apply_brevo_event(_environment, _payload), do: {:ok, :ignored}
+
+  defp brevo_event_type("delivered"), do: {:ok, :delivery}
+
+  defp brevo_event_type(type) when type in ["hard_bounce", "blocked", "invalid_email"],
+    do: {:ok, :bounce}
+
+  defp brevo_event_type("spam"), do: {:ok, :spam_complaint}
+  defp brevo_event_type("opened"), do: {:ok, :open}
+  defp brevo_event_type("click"), do: {:ok, :click}
+  defp brevo_event_type("unsubscribed"), do: {:ok, :subscription_change}
+  defp brevo_event_type(_type), do: :ignore
+
+  defp brevo_occurred_at(payload) do
+    case unix_seconds(payload["ts_event"] || payload["ts_epoch"] || payload["ts"]) do
+      {:ok, datetime} -> datetime
+      :error -> DateTime.utc_now(:second)
+    end
+  end
+
+  defp unix_seconds(value) when is_integer(value) and value > 100_000_000_000,
+    do: unix_seconds(div(value, 1000))
+
+  defp unix_seconds(value) when is_integer(value) do
+    case DateTime.from_unix(value) do
+      {:ok, datetime} -> {:ok, datetime}
+      {:error, _reason} -> :error
+    end
+  end
+
+  defp unix_seconds(_value), do: :error
+
+  defp brevo_bounce_detail(payload) do
+    [payload["event"], payload["reason"]]
+    |> Enum.reject(&(&1 in [nil, ""]))
+    |> Enum.join(": ")
+  end
 
   defp event_type("Delivery"), do: {:ok, :delivery}
   defp event_type("Bounce"), do: {:ok, :bounce}
@@ -439,11 +501,11 @@ defmodule Courier.Core.Emails do
 
   defp update_recipient(nil, _type, _at, _payload), do: :ok
 
-  defp update_recipient(%Recipient{} = recipient, type, at, payload) do
+  defp update_recipient(%Recipient{} = recipient, type, at, bounce_detail) do
     changes =
       case type do
         :delivery -> status_change(recipient, :delivered, at, nil)
-        :bounce -> status_change(recipient, :bounced, at, bounce_detail(payload))
+        :bounce -> status_change(recipient, :bounced, at, bounce_detail)
         :spam_complaint -> status_change(recipient, :spam_complaint, at, nil)
         :open -> if(is_nil(recipient.opened_at), do: [opened_at: at], else: [])
         :click -> if(is_nil(recipient.clicked_at), do: [clicked_at: at], else: [])

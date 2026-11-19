@@ -227,6 +227,83 @@ defmodule Courier.Core.EmailsTest do
     end
   end
 
+  describe "apply_brevo_event/2" do
+    setup do
+      {environment, _token} = brevo_environment_fixture()
+      email = email_fixture(environment, %{"to" => ["ana@exemplo.com.br"]})
+
+      {:ok, email} =
+        Emails.mark_sent(Repo.preload(email, :recipients), "2026.42@smtp-relay.mailin.fr")
+
+      %{environment: environment, email: email}
+    end
+
+    defp brevo_event(attrs) do
+      Map.merge(
+        %{
+          "event" => "delivered",
+          "email" => "ana@exemplo.com.br",
+          "id" => 77,
+          "message-id" => "<2026.42@smtp-relay.mailin.fr>",
+          "ts_event" => 1_794_484_800
+        },
+        attrs
+      )
+    end
+
+    test "delivery matches the message id with or without brackets", %{
+      environment: environment,
+      email: email
+    } do
+      {:ok, event} = Emails.apply_brevo_event(environment, brevo_event(%{}))
+
+      assert event.type == :delivery
+      assert event.occurred_at == DateTime.from_unix!(1_794_484_800)
+      recipient = Repo.get!(Emails.Recipient, event.recipient_id)
+      assert recipient.status == :delivered
+      assert recipient.email_id == email.id
+    end
+
+    test "hard bounce marks the recipient with the reason", %{environment: environment} do
+      {:ok, event} =
+        Emails.apply_brevo_event(
+          environment,
+          brevo_event(%{
+            "event" => "hard_bounce",
+            "message-id" => "2026.42@smtp-relay.mailin.fr",
+            "reason" => "mailbox does not exist"
+          })
+        )
+
+      assert event.type == :bounce
+      recipient = Repo.get!(Emails.Recipient, event.recipient_id)
+      assert recipient.status == :bounced
+      assert recipient.detail == "hard_bounce: mailbox does not exist"
+    end
+
+    test "opened and click keep the first time", %{environment: environment} do
+      {:ok, open} = Emails.apply_brevo_event(environment, brevo_event(%{"event" => "opened"}))
+      {:ok, click} = Emails.apply_brevo_event(environment, brevo_event(%{"event" => "click"}))
+
+      assert open.type == :open
+      assert click.type == :click
+      recipient = Repo.get!(Emails.Recipient, open.recipient_id)
+      assert recipient.opened_at
+      assert recipient.clicked_at
+      assert recipient.status == :pending
+    end
+
+    test "ignores transient events and unknown messages", %{environment: environment} do
+      assert {:ok, :ignored} =
+               Emails.apply_brevo_event(environment, brevo_event(%{"event" => "soft_bounce"}))
+
+      assert {:ok, :unknown_message} =
+               Emails.apply_brevo_event(environment, brevo_event(%{"message-id" => "<other@x>"}))
+
+      assert {:ok, :ignored} = Emails.apply_brevo_event(environment, %{"event" => "delivered"})
+    end
+  end
+
   describe "list_emails/2" do
     test "filters and paginates", %{environment: environment} do
       e1 = email_fixture(environment, %{"metadata" => %{"order_id" => "1"}})

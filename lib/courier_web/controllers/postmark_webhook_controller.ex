@@ -4,11 +4,12 @@ defmodule CourierWeb.PostmarkWebhookController do
   require Logger
 
   alias Courier.Core.{Apps, Emails}
+  alias CourierWeb.InboundAuth
 
   def create(conn, %{"environment_id" => environment_id} = params) do
     with %{} = environment <- Apps.get_environment(environment_id),
          %{} = config <- Apps.email_config(environment),
-         :ok <- authenticate(conn, config) do
+         :ok <- InboundAuth.authenticate(conn, config) do
       case Emails.apply_postmark_event(environment, Map.delete(params, "environment_id")) do
         {:ok, _} ->
           json(conn, %{received: true})
@@ -19,17 +20,6 @@ defmodule CourierWeb.PostmarkWebhookController do
       end
     else
       _ -> conn |> put_status(:unauthorized) |> json(%{error: "unauthorized"})
-    end
-  end
-
-  defp authenticate(conn, config) do
-    with password when is_binary(password) <- config.inbound_password,
-         {username, given} <- Plug.BasicAuth.parse_basic_auth(conn),
-         true <- username == Apps.inbound_username(),
-         true <- Plug.Crypto.secure_compare(given, password) do
-      :ok
-    else
-      _ -> :unauthorized
     end
   end
 end

@@ -1,7 +1,7 @@
 defmodule Courier.Core.Apps do
   import Ecto.Query, warn: false
 
-  alias Courier.Connectors.Postmark
+  alias Courier.Connectors.{Brevo, Postmark}
   alias Courier.Core.Apps.{App, ChannelConfig, Environment}
   alias Courier.Core.Tokens
   alias Courier.Repo
@@ -18,6 +18,28 @@ defmodule Courier.Core.Apps do
     Repo.all(
       from e in Environment,
         join: a in assoc(e, :app),
+        order_by: [asc: a.name, asc: e.name],
+        preload: [app: a]
+    )
+  end
+
+  def count_environments_by_provider do
+    Repo.all(
+      from c in ChannelConfig,
+        where: c.channel == :email,
+        group_by: c.provider,
+        select: {c.provider, count(c.id)}
+    )
+    |> Map.new()
+  end
+
+  def list_environments_using(provider) do
+    Repo.all(
+      from e in Environment,
+        join: c in ChannelConfig,
+        on: c.environment_id == e.id and c.channel == :email,
+        join: a in assoc(e, :app),
+        where: c.provider == ^provider,
         order_by: [asc: a.name, asc: e.name],
         preload: [app: a]
     )
@@ -153,21 +175,33 @@ defmodule Courier.Core.Apps do
     end
   end
 
-  defp after_save(%ChannelConfig{provider: :postmark} = config, inbound_url),
-    do: register_postmark_webhook(config, inbound_url)
-
-  defp after_save(%ChannelConfig{} = config, _inbound_url) do
+  defp after_save(%ChannelConfig{} = config, inbound_url) do
     config
-    |> Ecto.Changeset.change(postmark_webhook_id: nil, postmark_webhook_error: nil)
+    |> Ecto.Changeset.change(stale_webhook_fields(config.provider))
     |> Repo.update!()
+    |> register_webhook(inbound_url)
   end
+
+  defp stale_webhook_fields(:postmark), do: [brevo_webhook_id: nil, brevo_webhook_error: nil]
+  defp stale_webhook_fields(:brevo), do: [postmark_webhook_id: nil, postmark_webhook_error: nil]
+
+  defp stale_webhook_fields(_provider),
+    do: stale_webhook_fields(:postmark) ++ stale_webhook_fields(:brevo)
 
   def regenerate_inbound_password(%ChannelConfig{} = config, inbound_url) do
     config
     |> Ecto.Changeset.change(inbound_password: ChannelConfig.new_inbound_password())
     |> Repo.update!()
-    |> register_postmark_webhook(inbound_url)
+    |> register_webhook(inbound_url)
   end
+
+  def register_webhook(%ChannelConfig{provider: :postmark} = config, inbound_url),
+    do: register_postmark_webhook(config, inbound_url)
+
+  def register_webhook(%ChannelConfig{provider: :brevo} = config, inbound_url),
+    do: register_brevo_webhook(config, inbound_url)
+
+  def register_webhook(%ChannelConfig{} = config, _inbound_url), do: config
 
   def inbound_username, do: "courier"
 
@@ -189,5 +223,26 @@ defmodule Courier.Core.Apps do
     config
     |> Ecto.Changeset.change(changes)
     |> Repo.update!()
+  end
+
+  def register_brevo_webhook(%ChannelConfig{} = config, inbound_url) do
+    url = with_inbound_credentials(inbound_url, config.inbound_password)
+
+    changes =
+      case Brevo.upsert_webhook(config.server_token, config.brevo_webhook_id, url) do
+        {:ok, webhook_id} -> [brevo_webhook_id: webhook_id, brevo_webhook_error: nil]
+        {:error, reason} -> [brevo_webhook_error: Brevo.describe_error(reason)]
+      end
+
+    config
+    |> Ecto.Changeset.change(changes)
+    |> Repo.update!()
+  end
+
+  def with_inbound_credentials(inbound_url, password) do
+    inbound_url
+    |> URI.parse()
+    |> Map.put(:userinfo, "#{inbound_username()}:#{password}")
+    |> URI.to_string()
   end
 end
