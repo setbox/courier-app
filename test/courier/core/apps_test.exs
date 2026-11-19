@@ -5,6 +5,7 @@ defmodule Courier.Core.AppsTest do
 
   alias Courier.Connectors.PostmarkStub
   alias Courier.Core.Apps
+  alias Courier.Core.Apps.ChannelConfig
 
   describe "apps and environments" do
     test "derives the slug from the name" do
@@ -106,6 +107,60 @@ defmodule Courier.Core.AppsTest do
         Apps.save_email_config(environment, %{"from_email" => "a@exemplo.com.br"}, "u")
 
       assert errors_on(changeset).server_token
+    end
+
+    test "saves a Mailtrap Sandbox config without touching Postmark" do
+      environment = environment_fixture()
+
+      {:ok, config} =
+        Apps.save_email_config(
+          environment,
+          %{
+            "provider" => "mailtrap_sandbox",
+            "server_token" => "mt-token-5678",
+            "mailtrap_inbox_id" => " 4242 ",
+            "from_email" => "a@exemplo.com.br"
+          },
+          "u"
+        )
+
+      assert config.provider == :mailtrap_sandbox
+      assert config.mailtrap_inbox_id == "4242"
+      assert config.server_token_hint == "5678"
+      assert is_nil(config.postmark_webhook_id)
+      assert ChannelConfig.ready?(config)
+      refute_received {:postmark_request, _}
+    end
+
+    test "requires a numeric inbox id for Mailtrap Sandbox" do
+      environment = environment_fixture()
+
+      attrs = %{
+        "provider" => "mailtrap_sandbox",
+        "server_token" => "mt-token",
+        "from_email" => "a@exemplo.com.br"
+      }
+
+      {:error, changeset} = Apps.save_email_config(environment, attrs, "u")
+      assert "informe o Inbox ID do Mailtrap" in errors_on(changeset).mailtrap_inbox_id
+
+      {:error, changeset} =
+        Apps.save_email_config(environment, Map.put(attrs, "mailtrap_inbox_id", "abc"), "u")
+
+      assert "deve ter só números" in errors_on(changeset).mailtrap_inbox_id
+    end
+
+    test "switching the provider requires a new token" do
+      {environment, _token} = configured_environment_fixture()
+
+      {:error, changeset} =
+        Apps.save_email_config(
+          environment,
+          %{"provider" => "mailtrap_sandbox", "mailtrap_inbox_id" => "1"},
+          "u"
+        )
+
+      assert "informe o API Token do Mailtrap" in errors_on(changeset).server_token
     end
   end
 

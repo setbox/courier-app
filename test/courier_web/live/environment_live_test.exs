@@ -66,6 +66,36 @@ defmodule CourierWeb.EnvironmentLiveTest do
     refute html =~ "tok-9876"
   end
 
+  test "saves a Mailtrap Sandbox config", %{conn: conn, environment: environment} do
+    {:ok, lv, _html} = live(conn, env_path(environment, "/email"))
+
+    html =
+      lv
+      |> form("#config_form", channel_config: %{provider: "mailtrap_sandbox"})
+      |> render_change()
+
+    assert html =~ "Inbox ID"
+    refute html =~ "Message stream"
+
+    {:ok, _lv, html} =
+      lv
+      |> form("#config_form",
+        channel_config: %{
+          provider: "mailtrap_sandbox",
+          server_token: "mt-5555",
+          mailtrap_inbox_id: "4242",
+          from_email: "a@exemplo.com.br"
+        }
+      )
+      |> render_submit()
+      |> follow_redirect(conn, env_path(environment))
+
+    assert html =~ "Configuração salva."
+    assert html =~ "Mailtrap Sandbox"
+    assert html =~ "4242"
+    refute html =~ "Webhook do Postmark"
+  end
+
   test "keeps the user on the email page when invalid", %{conn: conn, environment: environment} do
     {:ok, lv, _html} = live(conn, env_path(environment, "/email"))
     html = lv |> form("#config_form", channel_config: %{from_email: "x"}) |> render_submit()

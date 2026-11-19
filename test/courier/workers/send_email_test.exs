@@ -92,4 +92,69 @@ defmodule Courier.Workers.SendEmailTest do
     assert :ok = perform_job(SendEmail, %{email_id: email.id})
     assert [%{args: %{"delivery_id" => _}}] = all_enqueued(worker: DeliverWebhook)
   end
+
+  describe "Mailtrap Sandbox" do
+    alias Courier.Connectors.MailtrapStub
+
+    setup do
+      {environment, _token} = mailtrap_environment_fixture()
+
+      email =
+        email_fixture(environment, %{
+          "cc" => ["bia@exemplo.com.br"],
+          "reply_to" => "Suporte <suporte@exemplo.com.br>",
+          "tag" => "welcome",
+          "metadata" => %{"order_id" => 123}
+        })
+
+      %{email: email}
+    end
+
+    test "sends to the sandbox inbox and marks as sent", %{email: email} do
+      assert :ok = perform_job(SendEmail, %{email_id: email.id})
+
+      assert_received {:mailtrap_request, opts}
+      assert opts[:url] == "https://mailtrap.test/api/send/4242"
+      assert {"authorization", "Bearer mt-token-1234"} in opts[:headers]
+
+      assert opts[:json] == %{
+               "from" => %{"email" => "naoresponda@exemplo.com.br", "name" => "Exemplo"},
+               "to" => [%{"email" => "ana@exemplo.com.br"}],
+               "cc" => [%{"email" => "bia@exemplo.com.br"}],
+               "reply_to" => %{"email" => "suporte@exemplo.com.br", "name" => "Suporte"},
+               "subject" => "Bem-vinda",
+               "html" => "<p>Olá</p>",
+               "text" => "Olá",
+               "category" => "welcome",
+               "custom_variables" => %{"order_id" => "123"}
+             }
+
+      refute_received {:postmark_request,
+                       [{:method, :post}, {:url, "https://postmark.test/email"} | _]}
+
+      email = Repo.get!(Email, email.id)
+      assert email.status == :sent
+      assert email.provider_message_id == "mt-1"
+    end
+
+    test "an invalid token fails at once", %{email: email} do
+      MailtrapStub.respond_with(fn _ ->
+        {:ok, %{status: 401, body: %{"errors" => ["Unauthorized"]}}}
+      end)
+
+      assert {:cancel, "Unauthorized"} = perform_job(SendEmail, %{email_id: email.id})
+      assert Repo.get!(Email, email.id).status == :failed
+    end
+
+    test "a rate limit retries", %{email: email} do
+      MailtrapStub.respond_with(fn _ ->
+        {:ok, %{status: 429, body: %{"errors" => ["Too many requests"]}}}
+      end)
+
+      assert {:error, "HTTP 429: Too many requests"} =
+               perform_job(SendEmail, %{email_id: email.id}, attempt: 1)
+
+      assert Repo.get!(Email, email.id).status == :queued
+    end
+  end
 end

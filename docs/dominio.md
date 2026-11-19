@@ -6,10 +6,10 @@
 |---|---|---|---|
 | Aplicação | `apps` | `Courier.Core.Apps.App` | Sistema cliente (Jayio, Punhado, PJ Park). Nome e slug únicos |
 | Ambiente | `environments` | `Courier.Core.Apps.Environment` | Instância da aplicação (local, dev, prod...). Guarda o hash do token `cl_`, o webhook para o cliente e as listas `allowed_recipients` (whitelist) e `blocked_recipients` (blacklist) |
-| Configuração de canal | `channel_configs` | `Courier.Core.Apps.ChannelConfig` | Uma por (ambiente, canal). Hoje só `email` com `postmark`: Server Token cifrado, remetente padrão, stream, rastreio e a credencial do webhook do Postmark |
+| Configuração de canal | `channel_configs` | `Courier.Core.Apps.ChannelConfig` | Uma por (ambiente, canal). Hoje só `email`, com `postmark` (Server Token cifrado, remetente padrão, stream, rastreio e a credencial do webhook do Postmark) ou `mailtrap_sandbox` (API Token cifrado, `mailtrap_inbox_id` e remetente padrão) |
 | E-mail | `emails` | `Courier.Core.Emails.Email` | Um pedido aceito pela API. Metadados no banco; o corpo fica no MinIO em `body_key` |
 | Destinatário | `email_recipients` | `Courier.Core.Emails.Recipient` | Cada endereço de `to`, `cc` e `bcc`, com status próprio |
-| Evento | `email_events` | `Courier.Core.Emails.Event` | Linha do tempo do e-mail: recebido, enviado, falhou e os eventos do Postmark |
+| Evento | `email_events` | `Courier.Core.Emails.Event` | Linha do tempo do e-mail: recebido, enviado, falhou e, no Postmark, os eventos de entrega |
 | Entrega de webhook | `webhook_deliveries` | `Courier.Core.Webhooks.Delivery` | Cada evento repassado ao cliente, com tentativas e última resposta |
 
 Aplicação não é chamada de `Application` no código para não confundir com a aplicação OTP
@@ -22,12 +22,13 @@ Aplicação não é chamada de `Application` no código para não confundir com 
 | Status | Quando |
 |---|---|
 | `queued` | Aceito pela API, aguardando o worker |
-| `sent` | O Postmark aceitou (`MessageID` em `provider_message_id`) |
-| `failed` | Recusa permanente do Postmark, ou 10 tentativas transitórias esgotadas |
+| `sent` | O provider aceitou (`MessageID` do Postmark ou o primeiro de `message_ids` do Mailtrap em `provider_message_id`) |
+| `failed` | Recusa permanente do provider, ou 10 tentativas transitórias esgotadas |
 
 **Destinatário** (`email_recipients.status`): `pending` → `delivered` → `bounced` ou
 `spam_complaint`. Uma entrega que chega depois de um bounce não desfaz o bounce. Abertura e clique não
-mudam o status: ficam em `opened_at` e `clicked_at` (primeira vez) e em eventos.
+mudam o status: ficam em `opened_at` e `clicked_at` (primeira vez) e em eventos. No Mailtrap Sandbox
+não há eventos de entrega, então o destinatário fica em `pending`.
 
 **Evento** (`email_events.type`): `queued`, `sent`, `failed`, `delivery`, `bounce`,
 `spam_complaint`, `open`, `click`, `subscription_change`.
@@ -48,12 +49,21 @@ mudam o status: ficam em `opened_at` e `clicked_at` (primeira vez) e em eventos.
      `queued` e o job `Courier.Workers.SendEmail`, numa transação. Se o MinIO falhar, responde
      `storage_unavailable`.
 2. **Envio** (`Courier.Workers.SendEmail`, fila `emails`, até 10 tentativas). Lê o corpo do MinIO e
-   chama `Courier.Connectors.Postmark.send_email/2`.
+   chama o provider do ambiente (`provider` da configuração de canal):
+   - **Postmark**: `Courier.Connectors.Postmark.send_email/2`, `POST /email`. `401` ou `422`:
+     `failed` na hora, com `ErrorCode` e mensagem do Postmark.
+   - **Mailtrap Sandbox**: `Courier.Connectors.Mailtrap.send_email/3`,
+     `POST https://sandbox.api.mailtrap.io/api/send/<inbox_id>` com `Authorization: Bearer <token>`.
+     `400`, `401`, `403`, `404`, `413` ou `422`: `failed` na hora, com a mensagem de `errors` (sem
+     código). `429` e `5xx` são transitórios.
+
+   Nos dois:
    - `200`: `sent`, evento `sent`.
-   - `401` ou `422`: `failed` na hora, com `ErrorCode` e mensagem do Postmark; o job é cancelado.
+   - Recusa permanente: o job é cancelado.
    - Outro status, timeout ou MinIO indisponível: nova tentativa com o backoff do Oban; na décima,
      `failed`.
-3. **Eventos do Postmark** (`POST /webhooks/postmark/:environment_id`, Basic Auth do ambiente).
+3. **Eventos do Postmark** (`POST /webhooks/postmark/:environment_id`, Basic Auth do ambiente). Só
+   Postmark: o Mailtrap Sandbox não manda eventos.
    `Courier.Core.Emails.apply_postmark_event/2` acha o e-mail pelo `MessageID` dentro do ambiente,
    atualiza o destinatário e grava o evento. Mensagem desconhecida ou tipo não tratado responde `200`
    e é ignorado, para o Postmark não reenviar em loop.
@@ -69,5 +79,5 @@ mudam o status: ficam em `opened_at` e `clicked_at` (primeira vez) e em eventos.
 |---|---|---|
 | Token do ambiente | `cl_` + 32 bytes aleatórios (base64url) | SHA-256 em `client_token_hash`, últimos 4 em `client_token_hint`. Mostrado uma vez |
 | Segredo do webhook do cliente | `whsec_` + 32 bytes | Cifrado (`Courier.Vault`) em `environments.webhook_secret`. Mostrado uma vez |
-| Server Token do Postmark | o do Postmark | Cifrado em `channel_configs.server_token`; a tela mostra só os últimos 4 |
+| Server Token do Postmark ou API Token do Mailtrap | o do provider | Cifrado em `channel_configs.server_token`; a tela mostra só os últimos 4 |
 | Senha do webhook do Postmark | 24 bytes aleatórios | Cifrada em `channel_configs.inbound_password`; visível na tela para cadastro manual. Usuário fixo `courier` |

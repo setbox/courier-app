@@ -52,6 +52,10 @@ config :courier, :postmark,
   base_url: "https://postmark.test",
   http: Courier.Connectors.PostmarkStub
 
+config :courier, :mailtrap,
+  base_url: "https://mailtrap.test",
+  http: Courier.Connectors.MailtrapStub
+
 config :courier, :webhook_http, Courier.Webhooks.HttpStub
 
 config :courier, Courier.Vault,

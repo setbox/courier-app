@@ -120,8 +120,8 @@ defmodule CourierWeb.EnvironmentLive.Show do
         </div>
       </.card_section>
 
-      <.card_section title="E-mail · Postmark">
-        <:subtitle>Credencial do server do Postmark, remetente padrão e rastreio.</:subtitle>
+      <.card_section title="E-mail">
+        <:subtitle>Provider, credencial e remetente padrão.</:subtitle>
 
         <div :if={is_nil(@config)}>
           <.pill tone={:pending}>Não configurado</.pill>
@@ -132,17 +132,31 @@ defmodule CourierWeb.EnvironmentLive.Show do
           id="email-config"
           class="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-[180px_minmax(0,1fr)]"
         >
-          <dt class="font-semibold text-neutral">Server API Token</dt>
+          <dt class="font-semibold text-neutral">Provider</dt>
+          <dd>{ChannelConfig.provider_label(@config.provider)}</dd>
+          <dt class="font-semibold text-neutral">
+            {if @config.provider == :postmark, do: "Server API Token", else: "API Token"}
+          </dt>
           <dd><code>••••{@config.server_token_hint}</code></dd>
           <dt class="font-semibold text-neutral">Remetente</dt>
           <dd>{@config.from_name} &lt;{@config.from_email}&gt;</dd>
-          <dt class="font-semibold text-neutral">Message stream</dt>
-          <dd><code>{@config.message_stream}</code></dd>
-          <dt class="font-semibold text-neutral">Rastrear aberturas</dt>
-          <dd>{yes_no(@config.track_opens)}</dd>
-          <dt class="font-semibold text-neutral">Rastrear cliques</dt>
-          <dd>{yes_no(@config.track_links)}</dd>
+          <%= if @config.provider == :postmark do %>
+            <dt class="font-semibold text-neutral">Message stream</dt>
+            <dd><code>{@config.message_stream}</code></dd>
+            <dt class="font-semibold text-neutral">Rastrear aberturas</dt>
+            <dd>{yes_no(@config.track_opens)}</dd>
+            <dt class="font-semibold text-neutral">Rastrear cliques</dt>
+            <dd>{yes_no(@config.track_links)}</dd>
+          <% else %>
+            <dt class="font-semibold text-neutral">Inbox ID</dt>
+            <dd><code>{@config.mailtrap_inbox_id}</code></dd>
+          <% end %>
         </dl>
+
+        <p :if={@config && @config.provider == :mailtrap_sandbox} class="text-sm text-neutral">
+          Sandbox: os e-mails ficam na caixa de testes do Mailtrap e não chegam aos destinatários.
+          Não há eventos de entrega, abertura ou clique.
+        </p>
 
         <div>
           <.button
@@ -154,7 +168,7 @@ defmodule CourierWeb.EnvironmentLive.Show do
         </div>
       </.card_section>
 
-      <.card_section :if={@config} title="Webhook do Postmark">
+      <.card_section :if={@config && @config.provider == :postmark} title="Webhook do Postmark">
         <:subtitle>
           O Courier cadastra este webhook no Postmark ao salvar a configuração. Para cadastrar à mão,
           use a URL e a credencial abaixo (Basic Auth), com todos os eventos marcados.

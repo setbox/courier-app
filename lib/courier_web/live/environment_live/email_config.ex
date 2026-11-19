@@ -14,13 +14,13 @@ defmodule CourierWeb.EnvironmentLive.EmailConfig do
      |> assign(:page_title, "E-mail · #{environment.name}")
      |> assign(:environment, environment)
      |> assign(:config, config)
-     |> assign(:form, to_form(Apps.change_email_config(config)))}
+     |> assign_form(Apps.change_email_config(config))}
   end
 
   @impl true
   def handle_event("validate", %{"channel_config" => params}, socket) do
     changeset = Apps.change_email_config(socket.assigns.config, params)
-    {:noreply, assign(socket, :form, to_form(changeset, action: :validate))}
+    {:noreply, assign_form(socket, Map.put(changeset, :action, :validate))}
   end
 
   def handle_event("save", %{"channel_config" => params}, socket) do
@@ -35,12 +35,24 @@ defmodule CourierWeb.EnvironmentLive.EmailConfig do
          |> push_navigate(to: ~p"/apps/#{environment.app}/environments/#{environment}")}
 
       {:error, changeset} ->
-        {:noreply, assign(socket, :form, to_form(changeset))}
+        {:noreply, assign_form(socket, changeset)}
     end
+  end
+
+  defp assign_form(socket, changeset) do
+    socket
+    |> assign(:form, to_form(changeset))
+    |> assign(:provider, Ecto.Changeset.get_field(changeset, :provider) || :postmark)
+  end
+
+  defp provider_options do
+    Enum.map(ChannelConfig.providers(), &{ChannelConfig.provider_label(&1), &1})
   end
 
   defp flash_kind(%ChannelConfig{postmark_webhook_error: nil}), do: :info
   defp flash_kind(%ChannelConfig{}), do: :warning
+
+  defp saved_message(%ChannelConfig{provider: :mailtrap_sandbox}), do: "Configuração salva."
 
   defp saved_message(%ChannelConfig{postmark_webhook_error: nil}),
     do: "Configuração salva e webhook cadastrado no Postmark."
@@ -57,8 +69,8 @@ defmodule CourierWeb.EnvironmentLive.EmailConfig do
       </.back_link>
 
       <.header>
-        E-mail · Postmark
-        <:subtitle>Credencial do server do Postmark, remetente padrão e rastreio.</:subtitle>
+        E-mail
+        <:subtitle>Provider, credencial, remetente padrão e, no Postmark, rastreio.</:subtitle>
       </.header>
 
       <.card class="max-w-3xl p-6">
@@ -70,21 +82,54 @@ defmodule CourierWeb.EnvironmentLive.EmailConfig do
           class="grid gap-x-4 sm:grid-cols-2"
         >
           <.input
+            field={@form[:provider]}
+            type="select"
+            label="Provider"
+            options={provider_options()}
+          />
+          <p
+            :if={@provider == :mailtrap_sandbox}
+            class="mb-2 self-end text-sm text-neutral sm:pb-2"
+          >
+            Sandbox: o e-mail fica na caixa de testes do Mailtrap e não chega ao destinatário.
+          </p>
+          <div :if={@provider == :postmark} class="hidden sm:block"></div>
+          <.input
             field={@form[:server_token]}
             type="password"
-            label="Server API Token"
+            label={if @provider == :mailtrap_sandbox, do: "API Token", else: "Server API Token"}
             value=""
             autocomplete="off"
             placeholder={
-              @config.server_token_hint &&
+              @config.server_token_hint && @config.provider == @provider &&
                 "••••#{@config.server_token_hint} (deixe vazio para manter)"
             }
           />
-          <.input field={@form[:message_stream]} label="Message stream (transacional)" />
+          <.input
+            :if={@provider == :postmark}
+            field={@form[:message_stream]}
+            label="Message stream (transacional)"
+          />
+          <.input
+            :if={@provider == :mailtrap_sandbox}
+            field={@form[:mailtrap_inbox_id]}
+            label="Inbox ID"
+            inputmode="numeric"
+          />
           <.input field={@form[:from_email]} type="email" label="E-mail do remetente" />
           <.input field={@form[:from_name]} label="Nome do remetente" />
-          <.input field={@form[:track_opens]} type="checkbox" label="Rastrear aberturas" />
-          <.input field={@form[:track_links]} type="checkbox" label="Rastrear cliques" />
+          <.input
+            :if={@provider == :postmark}
+            field={@form[:track_opens]}
+            type="checkbox"
+            label="Rastrear aberturas"
+          />
+          <.input
+            :if={@provider == :postmark}
+            field={@form[:track_links]}
+            type="checkbox"
+            label="Rastrear cliques"
+          />
           <div class="mt-4 flex flex-wrap items-center justify-end gap-2 sm:col-span-2">
             <.button navigate={~p"/apps/#{@environment.app}/environments/#{@environment}"}>
               Cancelar

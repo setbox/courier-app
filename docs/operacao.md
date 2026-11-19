@@ -36,6 +36,13 @@ falhar, o erro aparece na tela e a configuração continua salva; dá para cadas
 
 Em dev o Postmark não alcança `localhost`, então os eventos de entrega não chegam; o envio funciona.
 
+## Mailtrap Sandbox
+
+Para ambientes de teste. Na tela do e-mail do ambiente, escolha "Mailtrap Sandbox" e informe o API
+Token (Settings → API Tokens, com acesso à inbox) e o Inbox ID (o número na URL da inbox,
+`/inboxes/<id>/messages`). O Courier envia para `https://sandbox.api.mailtrap.io/api/send/<id>`. Não
+há webhook: o Sandbox não manda eventos.
+
 ## Filas (Oban)
 
 | Fila | Concorrência | Worker |

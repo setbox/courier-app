@@ -18,10 +18,15 @@ Sabatina de 2026-11-10, que fechou o desenho da primeira entrega do envio de e-m
   regra do sistema olha o nome.
 - **Uma configuração por (ambiente, canal).** O ambiente pode ter e-mail hoje e SMS amanhã, cada canal
   com um provider. Na primeira entrega só existe e-mail → Postmark.
+- **Mailtrap Sandbox como segundo provider de e-mail** (2026-11-10). Só o Sandbox, não o envio do
+  Mailtrap: serve para ambientes de teste (local, dev, stage), em que o e-mail cai na caixa de testes
+  e nunca chega ao destinatário. Configuração com API Token e Inbox ID; o Sandbox não manda eventos,
+  então o e-mail para em `sent` e os destinatários ficam `pending`. Rastreio e message stream são do
+  Postmark e não se aplicam. Trocar de provider exige informar o token novo.
 - **Credencial do provider cifrada com Cloak** (`Courier.Vault`, chave em `CLOAK_KEY`). A tela mostra
   só os últimos caracteres.
-- **Remetente padrão na configuração**, com `from` opcional no pedido. Se o Postmark recusar
-  (assinatura não verificada), o envio falha com o erro dele registrado.
+- **Remetente padrão na configuração**, com `from` opcional no pedido. Se o provider recusar
+  (no Postmark, assinatura não verificada), o envio falha com o erro dele registrado.
 - **Rastreio de abertura e clique** ligado ou desligado na configuração (padrão desligado), com
   `track_opens`/`track_links` opcionais no pedido.
 

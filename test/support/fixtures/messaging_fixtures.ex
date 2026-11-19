@@ -35,6 +35,26 @@ defmodule Courier.MessagingFixtures do
     {environment, token}
   end
 
+  def mailtrap_environment_fixture(attrs \\ %{}) do
+    environment = environment_fixture(attrs)
+
+    {:ok, _config} =
+      Apps.save_email_config(
+        environment,
+        %{
+          "provider" => "mailtrap_sandbox",
+          "server_token" => "mt-token-1234",
+          "mailtrap_inbox_id" => "4242",
+          "from_email" => "naoresponda@exemplo.com.br",
+          "from_name" => "Exemplo"
+        },
+        "https://courier.test/webhooks/postmark/#{environment.id}"
+      )
+
+    {:ok, environment, token} = Apps.regenerate_client_token(environment)
+    {environment, token}
+  end
+
   def email_params(attrs \\ %{}) do
     Map.merge(
       %{

@@ -149,8 +149,17 @@ defmodule Courier.Core.Apps do
 
     with {:ok, config} <-
            config |> ChannelConfig.email_changeset(attrs) |> Repo.insert_or_update() do
-      {:ok, register_postmark_webhook(config, inbound_url)}
+      {:ok, after_save(config, inbound_url)}
     end
+  end
+
+  defp after_save(%ChannelConfig{provider: :postmark} = config, inbound_url),
+    do: register_postmark_webhook(config, inbound_url)
+
+  defp after_save(%ChannelConfig{} = config, _inbound_url) do
+    config
+    |> Ecto.Changeset.change(postmark_webhook_id: nil, postmark_webhook_error: nil)
+    |> Repo.update!()
   end
 
   def regenerate_inbound_password(%ChannelConfig{} = config, inbound_url) do

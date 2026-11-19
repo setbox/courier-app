@@ -41,6 +41,7 @@ config :ex_aws,
   secret_access_key: {:system, "AWS_SECRET_ACCESS_KEY"}
 
 config :courier, :postmark, base_url: "https://api.postmarkapp.com"
+config :courier, :mailtrap, base_url: "https://sandbox.api.mailtrap.io"
 
 # Configures the endpoint
 config :courier, CourierWeb.Endpoint,
