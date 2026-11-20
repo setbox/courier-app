@@ -50,7 +50,8 @@ em `lib/courier/connectors/` (`Google`, `Postmark`, `Brevo`), workers em `lib/co
 `/mcp` igual ao do PJ Park (`anubis_mcp`, OAuth próprio em `Courier.OAuth`, consentimento em
 `/oauth/authorize`, token por usuário). Ferramentas em `lib/courier/mcp/tools/`, auxiliares em
 `Courier.MCP` (ação sempre por `Courier.MCP.write/4`: confirmação, motivo e `Courier.Core.Audit`).
-Nenhuma ferramenta mostra ou troca segredo (token `cl_`, chave de provider, segredo de webhook).
+Chave de provider e segredo de webhook não passam pelo MCP: `configure_email` só aceita o Sandbox do
+Courier. A exceção é `generate_client_token`, que devolve o token `cl_` uma vez (decidido em 2026-11-20).
 
 ## Autenticação
 

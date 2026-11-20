@@ -9,6 +9,8 @@ defmodule Courier.MCP.ToolsTest do
   alias Courier.Core.Audit.AuditLog
   alias Courier.MCP.Tools
 
+  import Ecto.Query
+
   setup do
     user = user_fixture()
     {environment, _token} = configured_environment_fixture()
@@ -120,5 +122,31 @@ defmodule Courier.MCP.ToolsTest do
              call(Tools.RedeliverWebhook, confirm.(%{delivery_id: Ecto.UUID.generate()}), frame)
 
     assert email.id
+  end
+
+  test "configures the sandbox and generates a working token", %{frame: frame, user: user} do
+    {:ok, app} = Courier.Core.Apps.create_app(%{name: "PJPark"})
+    {:ok, env} = Courier.Core.Apps.create_environment(app, %{name: "local"})
+    confirm = &Map.merge(&1, %{reason: "dev do pjpark", confirm: true})
+
+    assert {:ok, %{"provider" => "sandbox", "remetente" => "naoresponda@pjpark.com.br"}} =
+             call(
+               Tools.ConfigureEmail,
+               confirm.(%{
+                 environment_id: env.id,
+                 from_email: "naoresponda@pjpark.com.br",
+                 from_name: "PJ Park"
+               }),
+               frame
+             )
+
+    assert {:ok, %{"token" => "cl_" <> _ = token}} =
+             call(Tools.GenerateClientToken, confirm.(%{environment_id: env.id}), frame)
+
+    assert Courier.Core.Apps.get_environment_by_client_token(token).id == env.id
+
+    logs = Repo.all(from a in AuditLog, where: a.action == "mcp_write")
+    refute Enum.any?(logs, &(inspect(&1.metadata) =~ token))
+    assert user.id
   end
 end

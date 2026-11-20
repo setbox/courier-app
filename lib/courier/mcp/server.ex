@@ -23,6 +23,8 @@ defmodule Courier.MCP.Server do
   component(Tools.CreateEnvironment)
   component(Tools.UpdateRecipientLists)
   component(Tools.RemoveUnsubscribe)
+  component(Tools.ConfigureEmail)
+  component(Tools.GenerateClientToken)
 
   @impl true
   def init(_client_info, frame), do: {:ok, frame}

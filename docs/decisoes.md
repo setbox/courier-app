@@ -140,8 +140,9 @@ Sabatina de 2026-11-10, que fechou o desenho da primeira entrega do envio de e-m
   `get_app`, `get_environment`, `list_providers`, `list_unsubscribes`, `search_audit`.
 - **Ações com confirmação e motivo** (formulário do cliente MCP, ou `reason` e `confirm: true`):
   `send_test_email`, `redeliver_webhook`, `create_app`, `create_environment`, `update_recipient_lists`,
-  `remove_unsubscribe`. Cada uma grava em `audit_logs` (ferramenta, ação, motivo, parâmetros), visível
+  `remove_unsubscribe`, `configure_email` (só Sandbox) e `generate_client_token`. Cada uma grava em `audit_logs` (ferramenta, ação, motivo, parâmetros), visível
   em "Auditoria".
-- **Segredo não passa pelo MCP**: gerar token `cl_`, cadastrar chave de provider e segredo de webhook
-  ficam só no painel, porque o que passa pelo MCP fica no histórico da conversa.
+- **Chave de provider e segredo de webhook não passam pelo MCP**, porque o que passa por ele fica no
+  histórico da conversa. Exceção decidida em 2026-11-20: `generate_client_token` devolve o token `cl_`
+  uma vez, para configurar uma aplicação sem abrir o painel; a auditoria guarda o pedido, nunca o token.
 
