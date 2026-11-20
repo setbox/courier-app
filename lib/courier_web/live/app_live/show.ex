@@ -18,7 +18,7 @@ defmodule CourierWeb.AppLive.Show do
     ~H"""
     <Layouts.app flash={@flash} current_scope={@current_scope} active={:apps}>
       <.link
-        navigate={~p"/"}
+        navigate={~p"/apps"}
         class="flex items-center gap-1 text-sm font-semibold text-neutral hover:text-primary"
       >
         <.icon name="hero-chevron-left-mini" class="size-4" /> Aplicações

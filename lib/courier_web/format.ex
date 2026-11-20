@@ -9,6 +9,37 @@ defmodule CourierWeb.Format do
     |> Calendar.strftime("%d/%m/%Y %H:%M:%S")
   end
 
+  def number(value) when is_integer(value) do
+    value
+    |> Integer.to_string()
+    |> String.reverse()
+    |> String.replace(~r/(\d{3})(?=\d)/, "\\1.")
+    |> String.reverse()
+  end
+
+  def percent(_part, 0), do: "0%"
+
+  def percent(part, total) do
+    ratio = part / total * 100
+    decimals = if ratio < 10, do: 2, else: 1
+
+    (ratio
+     |> Float.round(decimals)
+     |> :erlang.float_to_binary(decimals: decimals)
+     |> String.replace(".", ",")) <> "%"
+  end
+
+  def short_datetime(nil), do: "-"
+
+  def short_datetime(%DateTime{} = datetime) do
+    datetime
+    |> DateTime.add(@offset_seconds, :second)
+    |> Calendar.strftime("%d/%m %H:%M")
+  end
+
+  def category(:transactional), do: "Transacional"
+  def category(:marketing), do: "Marketing"
+
   def email_status(:queued), do: "Na fila"
   def email_status(:sent), do: "Enviado"
   def email_status(:failed), do: "Falhou"

@@ -88,12 +88,33 @@ Sabatina de 2026-11-10, que fechou o desenho da primeira entrega do envio de e-m
   em `details.recipients`). Nada é gravado nem enviado: o cliente decide o que fazer, e nunca sai um
   e-mail "pela metade" citando quem não recebeu.
 
-## Só transacional (2026-11-10)
+## Categoria do e-mail (2026-11-20)
 
-- **O Courier envia só e-mail transacional.** Não há link de descadastro nem gestão de inscrição: o
-  stream configurado no ambiente deve ser um stream transacional do Postmark, que não insere rodapé
-  de descadastro (só os streams de broadcast inserem). O evento `SubscriptionChange` continua
-  registrado porque o Postmark pode suprimir um destinatário por bounce ou reclamação de spam.
+- **Todo e-mail tem categoria obrigatória: `transactional` ou `marketing`** (substitui o "só
+  transacional" de 2026-11-10). Pedido sem ela é recusado com `422`. Os e-mails anteriores viraram
+  `transactional` na migration.
+- **Marketing no Postmark vai pelo stream `broadcast`** quando o pedido não informa `message_stream`:
+  stream transacional não pode levar marketing. O server do Postmark precisa ter esse stream.
+- **O Courier gera o descadastro do marketing**: link assinado por destinatário (`Phoenix.Token`, 2
+  anos), cabeçalhos `List-Unsubscribe` e `List-Unsubscribe-Post` e o link no corpo (marcador
+  `{{courier_unsubscribe_url}}` ou uma linha no fim). Por isso marketing tem um destinatário por
+  e-mail. A página `/u/<token>` pede confirmação (um robô que abre links não descadastra); o POST,
+  inclusive o de um clique sem CSRF, grava em `email_suppressions` e gera `email.subscription_change`.
+  Marketing para quem saiu é recusado com `recipient_unsubscribed`; transacional segue.
+
+## Painel e falhas (2026-11-20)
+
+- **Contadores diários em `email_daily_stats`**, por dia (horário de Brasília), ambiente, provider e
+  categoria: enviados, entregues, com erro, não encontrado, devolvidos e spam. O e-mail some em 90
+  dias, o contador fica, e por isso o Painel mostra 12 meses. `Courier.Workers.RebuildStats` recalcula
+  de hora em hora os 7 dias fechados (90 na primeira vez); o dia de hoje é calculado na hora.
+- **Não encontrado** é a devolução por endereço inexistente: `HardBounce` e `BadEmailAddress` no
+  Postmark, `hard_bounce` e `invalid_email` no Brevo (`email_recipients.bounce_kind = not_found`). O
+  resto da devolução é "devolvido".
+- **O e-mail guarda o provider** que o enviou ou recusou (`emails.provider`), para o gráfico por provider
+  não mudar quando o ambiente troca de provider.
+- **Falhas** é tela própria (`/falhas`): e-mails recusados pelo provider e destinatários devolvidos ou
+  que marcaram spam, dentro da retenção de 90 dias.
 
 ## Consulta e retenção
 

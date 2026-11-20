@@ -20,7 +20,7 @@ defmodule CourierWeb.Layouts do
         <.link
           navigate={~p"/"}
           class="mb-2 flex size-12 items-center justify-center"
-          aria-label="Courier, aplicações"
+          aria-label="Courier, painel"
         >
           <img src={~p"/images/logo.svg"} alt="" class="h-8 w-auto" />
         </.link>
@@ -97,7 +97,7 @@ defmodule CourierWeb.Layouts do
           </div>
         </header>
         <main class="min-w-0 flex-1 px-4 py-6 sm:px-6">
-          <div class="flex max-w-[1280px] flex-col gap-4">
+          <div class="flex flex-col gap-4">
             {render_slot(@inner_block)}
           </div>
         </main>
@@ -109,8 +109,10 @@ defmodule CourierWeb.Layouts do
 
   defp nav_items do
     [
-      {:apps, "Aplicações", ~p"/", "hero-squares-2x2"},
+      {:dashboard, "Painel", ~p"/", "hero-presentation-chart-line"},
+      {:apps, "Aplicações", ~p"/apps", "hero-squares-2x2"},
       {:emails, "E-mails", ~p"/emails", "hero-envelope"},
+      {:failures, "Falhas", ~p"/falhas", "hero-exclamation-triangle"},
       {:providers, "Providers", ~p"/providers", "hero-server-stack"}
     ]
   end
@@ -154,33 +156,18 @@ defmodule CourierWeb.Layouts do
 
   def theme_toggle(assigns) do
     ~H"""
-    <div class="card relative flex flex-row items-center border-2 border-base-300 bg-base-300 rounded-full">
-      <div class="absolute w-1/3 h-full rounded-full border-1 border-base-200 bg-base-100 brightness-200 left-0 [[data-theme=light]_&]:left-1/3 [[data-theme=dark]_&]:left-2/3 transition-[left]" />
-
-      <button
-        class="flex p-2 cursor-pointer w-1/3"
-        phx-click={JS.dispatch("phx:set-theme")}
-        data-phx-theme="system"
-      >
-        <.icon name="hero-computer-desktop-micro" class="size-4 opacity-75 hover:opacity-100" />
-      </button>
-
-      <button
-        class="flex p-2 cursor-pointer w-1/3"
-        phx-click={JS.dispatch("phx:set-theme")}
-        data-phx-theme="light"
-      >
-        <.icon name="hero-sun-micro" class="size-4 opacity-75 hover:opacity-100" />
-      </button>
-
-      <button
-        class="flex p-2 cursor-pointer w-1/3"
-        phx-click={JS.dispatch("phx:set-theme")}
-        data-phx-theme="dark"
-      >
-        <.icon name="hero-moon-micro" class="size-4 opacity-75 hover:opacity-100" />
-      </button>
-    </div>
+    <button
+      type="button"
+      class="theme-toggle btn btn-ghost btn-square"
+      phx-click={JS.dispatch("phx:toggle-theme")}
+      aria-label="Alternar tema claro e escuro"
+      title="Alternar tema"
+    >
+      <span class="relative flex size-5 items-center justify-center">
+        <.icon name="hero-sun" class="theme-toggle__sol absolute size-5" />
+        <.icon name="hero-moon" class="theme-toggle__lua absolute size-5" />
+      </span>
+    </button>
     """
   end
 end

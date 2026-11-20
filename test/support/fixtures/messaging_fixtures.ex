@@ -75,6 +75,7 @@ defmodule Courier.MessagingFixtures do
   def email_params(attrs \\ %{}) do
     Map.merge(
       %{
+        "category" => "transactional",
         "to" => ["ana@exemplo.com.br"],
         "subject" => "Bem-vinda",
         "html_body" => "<p>Olá</p>",

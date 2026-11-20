@@ -58,7 +58,7 @@ e não envia a ninguém. O conteúdo (HTML e texto) fica em E-mails, filtrando p
 |---|---|---|
 | `emails` | 20 | `Courier.Workers.SendEmail` |
 | `webhooks` | 10 | `Courier.Workers.DeliverWebhook` |
-| `maintenance` | 1 | `Courier.Workers.PurgeExpired` (cron `0 6 * * *`, UTC) |
+| `maintenance` | 1 | `Courier.Workers.PurgeExpired` (cron `0 6 * * *`, UTC) e `Courier.Workers.RebuildStats` (cron `10 * * * *`) |
 
 Painel em `/oban`, só com login.
 

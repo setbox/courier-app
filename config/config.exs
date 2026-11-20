@@ -32,7 +32,11 @@ config :courier, Oban,
   plugins: [
     {Oban.Plugins.Pruner, max_age: 60 * 60 * 24 * 30},
     {Oban.Plugins.Lifeline, rescue_after: :timer.minutes(30)},
-    {Oban.Plugins.Cron, crontab: [{"0 6 * * *", Courier.Workers.PurgeExpired}]}
+    {Oban.Plugins.Cron,
+     crontab: [
+       {"0 6 * * *", Courier.Workers.PurgeExpired},
+       {"10 * * * *", Courier.Workers.RebuildStats}
+     ]}
   ]
 
 config :ex_aws,

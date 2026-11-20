@@ -7,7 +7,9 @@
 | Aplicação | `apps` | `Courier.Core.Apps.App` | Sistema cliente (Jayio, Punhado, PJ Park). Nome e slug únicos |
 | Ambiente | `environments` | `Courier.Core.Apps.Environment` | Instância da aplicação (local, dev, prod...). Guarda o hash do token `cl_`, o webhook para o cliente e as listas `allowed_recipients` (whitelist) e `blocked_recipients` (blacklist) |
 | Configuração de canal | `channel_configs` | `Courier.Core.Apps.ChannelConfig` | Uma por (ambiente, canal). Hoje só `email`, com `postmark` (Server Token cifrado, remetente padrão, stream, rastreio e a credencial do webhook do Postmark) `brevo` (API Key cifrada, remetente padrão, `brevo_webhook_id` e a mesma credencial de webhook) ou `sandbox` (só o remetente padrão: o Courier guarda o e-mail e não envia) |
-| E-mail | `emails` | `Courier.Core.Emails.Email` | Um pedido aceito pela API. Metadados no banco; o corpo fica no MinIO em `body_key` |
+| E-mail | `emails` | `Courier.Core.Emails.Email` | Um pedido aceito pela API. Metadados no banco; o corpo fica no MinIO em `body_key`. `category` (`transactional` ou `marketing`, obrigatória) e `provider` (gravado ao enviar ou falhar) |
+| Descadastro | `email_suppressions` | `Courier.Core.Unsubscribes.Suppression` | Endereço que cancelou a inscrição de marketing num ambiente (`Courier.Core.Unsubscribes`). Bloqueia só `marketing` |
+| Estatística diária | `email_daily_stats` | `Courier.Core.Stats.DailyStat` | Contadores por dia, ambiente, provider e categoria (enviados, entregues, com erro, não encontrado, devolvidos, spam). Sobrevivem à retenção; base do Painel (`Courier.Core.Stats`) |
 | Destinatário | `email_recipients` | `Courier.Core.Emails.Recipient` | Cada endereço de `to`, `cc` e `bcc`, com status próprio |
 | Evento | `email_events` | `Courier.Core.Emails.Event` | Linha do tempo do e-mail: recebido, enviado, falhou e, no Postmark, os eventos de entrega |
 | Entrega de webhook | `webhook_deliveries` | `Courier.Core.Webhooks.Delivery` | Cada evento repassado ao cliente, com tentativas e última resposta |
@@ -28,7 +30,7 @@ Aplicação não é chamada de `Application` no código para não confundir com 
 **Destinatário** (`email_recipients.status`): `pending` → `delivered` → `bounced` ou
 `spam_complaint`. Uma entrega que chega depois de um bounce não desfaz o bounce. Abertura e clique não
 mudam o status: ficam em `opened_at` e `clicked_at` (primeira vez) e em eventos. No sandbox
-não há eventos de entrega, então o destinatário fica em `pending`.
+não há eventos de entrega, então o destinatário fica em `pending`. Uma devolução guarda `bounce_kind`: `not_found` (endereço inexistente) ou `other`.
 
 **Evento** (`email_events.type`): `queued`, `sent`, `failed`, `delivery`, `bounce`,
 `spam_complaint`, `open`, `click`, `subscription_change`.

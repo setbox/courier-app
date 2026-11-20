@@ -25,6 +25,7 @@ estável; a mensagem pode mudar.
 | 422 | `invalid_request` | Campo inválido; `details` traz a lista por campo |
 | 422 | `provider_not_configured` | O ambiente não tem remetente ou, no Postmark e no Brevo, token do provider |
 | 422 | `recipient_not_allowed` | Algum destinatário está fora da whitelist ou na blacklist do ambiente; `details.recipients` lista os barrados. O pedido inteiro é recusado |
+| 422 | `recipient_unsubscribed` | E-mail de `marketing` para quem cancelou a inscrição neste ambiente; `details.recipients` lista os endereços |
 | 503 | `storage_unavailable` | O corpo não pôde ser gravado; tente de novo com a mesma `Idempotency-Key` |
 
 ## Enviar e-mail
@@ -33,6 +34,7 @@ estável; a mensagem pode mudar.
 
 | Campo | Tipo | Obrigatório | Observação |
 |---|---|---|---|
+| `category` | `transactional` ou `marketing` | sim | Sem ela, `422` com `invalid_request`. No Postmark, `marketing` usa o stream `broadcast` quando o pedido não informa `message_stream` |
 | `to` | lista de e-mails (ou um texto) | sim | Endereço simples, sem nome |
 | `subject` | texto | sim | Até 2000 caracteres |
 | `html_body` | texto | um dos dois | |
@@ -77,7 +79,15 @@ Num ambiente com o Sandbox do Courier o e-mail não sai do Courier: fica guardad
 visível na tela de E-mails, e não chega ao destinatário. A resposta e o fluxo são os mesmos
 (`202`, depois `sent`), com `provider_message_id` começando por `sandbox-`; não há eventos de entrega.
 
-O Courier envia só e-mail transacional: não acrescenta link de descadastro.
+**Marketing** vai para um destinatário só (um `to`, sem `cc` nem `bcc`). O Courier gera o descadastro:
+
+- cabeçalhos `List-Unsubscribe: <https://<host>/u/<token>>` e `List-Unsubscribe-Post:
+  List-Unsubscribe=One-Click` (descadastro em um clique do Gmail e do Yahoo);
+- o link no corpo: onde o HTML ou o texto tiver `{{courier_unsubscribe_url}}`, entra a URL; sem o marcador,
+  o Courier acrescenta uma linha no fim ("Para não receber mais estes e-mails, cancele a inscrição").
+
+Quem cancela a inscrição deixa de receber marketing daquele ambiente (`recipient_unsubscribed`), e a
+aplicação recebe o evento `email.subscription_change`. Transacional continua chegando.
 
 ```http
 HTTP/1.1 422
@@ -95,6 +105,8 @@ HTTP/1.1 422
 {
   "id": "fa47cfd7-...",
   "status": "sent",
+  "category": "transactional",
+  "provider": "postmark",
   "from": "Exemplo <naoresponda@exemplo.com.br>",
   "subject": "Bem-vinda",
   "metadata": {"order_id": "123"},
@@ -143,7 +155,7 @@ Courier-Signature: t=1762782734,v1=5f1c...
   "id": "77a3f8a4-...",
   "type": "email.delivery",
   "occurred_at": "2026-11-10T13:52:20Z",
-  "email": {"id": "fa47cfd7-...", "status": "sent", "subject": "Bem-vinda",
+  "email": {"id": "fa47cfd7-...", "status": "sent", "category": "transactional", "subject": "Bem-vinda",
             "metadata": {"order_id": "123"}, "idempotency_key": "pedido-123-boas-vindas"},
   "recipient": "ana@exemplo.com.br",
   "data": {"RecordType": "Delivery", "...": "payload do Postmark"}

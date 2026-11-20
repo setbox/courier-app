@@ -6,6 +6,7 @@ defmodule Courier.Workers.SendEmail do
   alias Courier.Core.Apps.ChannelConfig
   alias Courier.Core.Emails
   alias Courier.Core.Emails.Email
+  alias Courier.Core.Unsubscribes
   alias Courier.Repo
 
   @impl Oban.Worker
@@ -24,13 +25,15 @@ defmodule Courier.Workers.SendEmail do
 
     with true <- ChannelConfig.ready?(config) || {:permanent, nil, "provider not configured"},
          {:ok, body} <- fetch_body(email),
-         {:ok, %{message_id: message_id}} <- send_to_provider(config, email, body) do
-      {:ok, _} = Emails.mark_sent(email, message_id)
+         {body, unsubscribe_url} = with_unsubscribe(email, body),
+         {:ok, %{message_id: message_id}} <-
+           send_to_provider(config, email, body, unsubscribe_url) do
+      {:ok, _} = Emails.mark_sent(email, message_id, config.provider)
       :ok
     else
-      {:permanent, code, message} -> fail(email, code, message)
-      {:error, {:rejected, code, message}} -> fail(email, code, message)
-      {:error, {:transient, message}} -> retry(email, message, final_attempt?)
+      {:permanent, code, message} -> fail(email, code, message, provider(config))
+      {:error, {:rejected, code, message}} -> fail(email, code, message, provider(config))
+      {:error, {:transient, message}} -> retry(email, message, final_attempt?, provider(config))
     end
   end
 
@@ -41,28 +44,53 @@ defmodule Courier.Workers.SendEmail do
     end
   end
 
-  defp fail(email, code, message) do
-    {:ok, _} = Emails.mark_failed(email, code, message)
+  defp provider(%ChannelConfig{provider: provider}), do: provider
+  defp provider(_config), do: nil
+
+  defp fail(email, code, message, provider) do
+    {:ok, _} = Emails.mark_failed(email, code, message, provider)
     {:cancel, message}
   end
 
-  defp retry(email, message, true), do: fail(email, nil, message)
+  defp retry(email, message, true, provider), do: fail(email, nil, message, provider)
 
-  defp retry(email, message, false) do
+  defp retry(email, message, false, _provider) do
     Emails.register_attempt(email, message)
     {:error, message}
   end
 
-  defp send_to_provider(%ChannelConfig{provider: :sandbox}, _email, _body),
+  defp with_unsubscribe(%Email{category: :marketing} = email, body) do
+    %{address: address} = Enum.find(email.recipients, &(&1.kind == :to))
+    url = Unsubscribes.url(email, address)
+
+    body =
+      body
+      |> Map.update!(:html_body, &Unsubscribes.with_link(&1, url, :html))
+      |> Map.update!(:text_body, &Unsubscribes.with_link(&1, url, :text))
+
+    {body, url}
+  end
+
+  defp with_unsubscribe(_email, body), do: {body, nil}
+
+  defp send_to_provider(%ChannelConfig{provider: :sandbox}, _email, _body, _unsubscribe_url),
     do: {:ok, %{message_id: "sandbox-#{Ecto.UUID.generate()}"}}
 
-  defp send_to_provider(%ChannelConfig{provider: :brevo} = config, email, body),
-    do: Brevo.send_email(config.server_token, brevo_payload(email, body))
+  defp send_to_provider(%ChannelConfig{provider: :brevo} = config, email, body, unsubscribe_url),
+    do: Brevo.send_email(config.server_token, brevo_payload(email, body, unsubscribe_url))
 
-  defp send_to_provider(%ChannelConfig{} = config, email, body),
-    do: Postmark.send_email(config.server_token, payload(email, body))
+  defp send_to_provider(%ChannelConfig{} = config, email, body, unsubscribe_url),
+    do: Postmark.send_email(config.server_token, payload(email, body, unsubscribe_url))
 
-  def brevo_payload(%Email{} = email, body) do
+  defp unsubscribe_headers(nil), do: nil
+
+  defp unsubscribe_headers(url),
+    do: %{
+      "List-Unsubscribe" => "<#{url}>",
+      "List-Unsubscribe-Post" => "List-Unsubscribe=One-Click"
+    }
+
+  def brevo_payload(%Email{} = email, body, unsubscribe_url \\ nil) do
     %{
       "sender" => mailbox(email.from),
       "to" => mailboxes(email, :to),
@@ -72,7 +100,8 @@ defmodule Courier.Workers.SendEmail do
       "subject" => email.subject,
       "htmlContent" => body.html_body,
       "textContent" => body.text_body,
-      "tags" => email.tag && [email.tag]
+      "tags" => email.tag && [email.tag],
+      "headers" => unsubscribe_headers(unsubscribe_url)
     }
     |> Enum.reject(fn {_key, value} -> value in [nil, "", []] end)
     |> Map.new()
@@ -92,7 +121,7 @@ defmodule Courier.Workers.SendEmail do
     |> Enum.map(&%{"email" => &1.address})
   end
 
-  def payload(%Email{} = email, body) do
+  def payload(%Email{} = email, body, unsubscribe_url \\ nil) do
     %{
       "From" => email.from,
       "To" => addresses(email, :to),
@@ -105,11 +134,20 @@ defmodule Courier.Workers.SendEmail do
       "Tag" => email.tag,
       "MessageStream" => email.message_stream,
       "TrackOpens" => email.track_opens,
-      "TrackLinks" => if(email.track_links, do: "HtmlAndText", else: "None")
+      "TrackLinks" => if(email.track_links, do: "HtmlAndText", else: "None"),
+      "Headers" => postmark_headers(unsubscribe_url)
     }
     |> Enum.reject(fn {_key, value} -> value in [nil, ""] end)
     |> Map.new()
   end
+
+  defp postmark_headers(nil), do: nil
+
+  defp postmark_headers(url),
+    do:
+      url
+      |> unsubscribe_headers()
+      |> Enum.map(fn {name, value} -> %{"Name" => name, "Value" => value} end)
 
   defp addresses(%Email{recipients: recipients}, kind) do
     recipients

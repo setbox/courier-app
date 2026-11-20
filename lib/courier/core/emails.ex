@@ -6,6 +6,7 @@ defmodule Courier.Core.Emails do
   alias Courier.Core.Apps.{ChannelConfig, Environment}
   alias Courier.Core.Emails.{Email, Event, Recipient, Request}
   alias Courier.Core.Storage
+  alias Courier.Core.Unsubscribes
   alias Courier.Core.Webhooks
   alias Courier.Repo
   alias Courier.Workers.SendEmail
@@ -22,7 +23,8 @@ defmodule Courier.Core.Emails do
 
     with :ok <- ensure_ready(config),
          {:ok, request} <- validate(params),
-         :ok <- ensure_recipients_allowed(environment, request) do
+         :ok <- ensure_recipients_allowed(environment, request),
+         :ok <- ensure_subscribed(environment, request) do
       if present?(idempotency_key) do
         submit_idempotent(environment, config, request, idempotency_key)
       else
@@ -34,6 +36,15 @@ defmodule Courier.Core.Emails do
   defp ensure_ready(config) do
     if ChannelConfig.ready?(config), do: :ok, else: {:error, :provider_not_configured}
   end
+
+  defp ensure_subscribed(environment, %Request{category: :marketing, to: to}) do
+    case Unsubscribes.suppressed(environment, to) do
+      [] -> :ok
+      unsubscribed -> {:error, {:recipient_unsubscribed, unsubscribed}}
+    end
+  end
+
+  defp ensure_subscribed(_environment, _request), do: :ok
 
   defp ensure_recipients_allowed(environment, request) do
     case Enum.reject(
@@ -112,11 +123,12 @@ defmodule Courier.Core.Emails do
       id: id,
       environment_id: environment.id,
       status: :queued,
+      category: request.category,
       from: request.from || default_from(config),
       subject: request.subject,
       reply_to: request.reply_to,
       tag: request.tag,
-      message_stream: request.message_stream || config.message_stream,
+      message_stream: request.message_stream || default_stream(config, request.category),
       metadata: request.metadata || %{},
       idempotency_key: idempotency_key,
       track_opens:
@@ -148,6 +160,9 @@ defmodule Courier.Core.Emails do
       {:ok, %{email | recipients: recipients}}
     end)
   end
+
+  defp default_stream(%ChannelConfig{provider: :postmark}, :marketing), do: "broadcast"
+  defp default_stream(%ChannelConfig{message_stream: stream}, _category), do: stream
 
   defp default_from(%ChannelConfig{from_name: name, from_email: email}) when name in [nil, ""],
     do: email
@@ -324,10 +339,28 @@ defmodule Courier.Core.Emails do
   defp encode_cursor(%Email{inserted_at: inserted_at, id: id}),
     do: Base.url_encode64("#{DateTime.to_iso8601(inserted_at)}|#{id}", padding: false)
 
+  def record_unsubscribe(email_id, address) do
+    case Repo.get(Email, email_id) do
+      nil ->
+        :ok
+
+      email ->
+        email = Repo.preload(email, :recipients)
+        recipient = find_recipient(email, address)
+
+        record_event!(email, :subscription_change, DateTime.utc_now(:second), recipient, %{
+          "source" => "courier",
+          "suppress_sending" => true
+        })
+
+        :ok
+    end
+  end
+
   def sandbox?(%Email{provider_message_id: "sandbox-" <> _}), do: true
   def sandbox?(%Email{}), do: false
 
-  def mark_sent(%Email{} = email, message_id) do
+  def mark_sent(%Email{} = email, message_id, provider \\ nil) do
     now = DateTime.utc_now(:second)
 
     Repo.transact(fn ->
@@ -335,6 +368,7 @@ defmodule Courier.Core.Emails do
         email
         |> Ecto.Changeset.change(
           status: :sent,
+          provider: provider || email.provider,
           provider_message_id: message_id,
           sent_at: now,
           attempts: email.attempts + 1,
@@ -348,7 +382,7 @@ defmodule Courier.Core.Emails do
     end)
   end
 
-  def mark_failed(%Email{} = email, code, message) do
+  def mark_failed(%Email{} = email, code, message, provider \\ nil) do
     now = DateTime.utc_now(:second)
 
     Repo.transact(fn ->
@@ -356,6 +390,7 @@ defmodule Courier.Core.Emails do
         email
         |> Ecto.Changeset.change(
           status: :failed,
+          provider: provider || email.provider,
           failed_at: now,
           attempts: email.attempts + 1,
           error_code: code,
@@ -385,7 +420,13 @@ defmodule Courier.Core.Emails do
         recipient = find_recipient(email, recipient_address(event_type, payload))
         occurred_at = occurred_at(event_type, payload)
 
-        update_recipient(recipient, event_type, occurred_at, bounce_detail(payload))
+        update_recipient(
+          recipient,
+          event_type,
+          occurred_at,
+          {bounce_detail(payload), postmark_bounce_kind(payload["Type"])}
+        )
+
         event = record_event!(email, event_type, occurred_at, recipient, event_data(payload))
 
         {:ok, event}
@@ -410,7 +451,13 @@ defmodule Courier.Core.Emails do
         recipient = find_recipient(email, payload["email"])
         occurred_at = brevo_occurred_at(payload)
 
-        update_recipient(recipient, event_type, occurred_at, brevo_bounce_detail(payload))
+        update_recipient(
+          recipient,
+          event_type,
+          occurred_at,
+          {brevo_bounce_detail(payload), brevo_bounce_kind(type)}
+        )
+
         event = record_event!(email, event_type, occurred_at, recipient, payload)
 
         {:ok, event}
@@ -502,13 +549,19 @@ defmodule Courier.Core.Emails do
     end
   end
 
+  defp postmark_bounce_kind(type) when type in ["HardBounce", "BadEmailAddress"], do: :not_found
+  defp postmark_bounce_kind(_type), do: :other
+
+  defp brevo_bounce_kind(type) when type in ["hard_bounce", "invalid_email"], do: :not_found
+  defp brevo_bounce_kind(_type), do: :other
+
   defp update_recipient(nil, _type, _at, _payload), do: :ok
 
-  defp update_recipient(%Recipient{} = recipient, type, at, bounce_detail) do
+  defp update_recipient(%Recipient{} = recipient, type, at, {bounce_detail, bounce_kind}) do
     changes =
       case type do
         :delivery -> status_change(recipient, :delivered, at, nil)
-        :bounce -> status_change(recipient, :bounced, at, bounce_detail)
+        :bounce -> bounce_change(recipient, at, bounce_detail, bounce_kind)
         :spam_complaint -> status_change(recipient, :spam_complaint, at, nil)
         :open -> if(is_nil(recipient.opened_at), do: [opened_at: at], else: [])
         :click -> if(is_nil(recipient.clicked_at), do: [clicked_at: at], else: [])
@@ -517,6 +570,13 @@ defmodule Courier.Core.Emails do
 
     if changes != [], do: recipient |> Ecto.Changeset.change(changes) |> Repo.update!()
     :ok
+  end
+
+  defp bounce_change(recipient, at, detail, kind) do
+    case status_change(recipient, :bounced, at, detail) do
+      [] -> []
+      changes -> changes ++ [bounce_kind: kind]
+    end
   end
 
   defp status_change(%Recipient{status: current}, new, at, detail) do
@@ -548,6 +608,158 @@ defmodule Courier.Core.Emails do
 
     Webhooks.enqueue(email, event)
     event
+  end
+
+  @failure_types [:failed, :not_found, :bounced, :spam]
+
+  def failure_types, do: @failure_types
+
+  def list_failures(filters, limit) do
+    types = if filters[:type] in @failure_types, do: [filters[:type]], else: @failure_types
+
+    failed =
+      if :failed in types,
+        do:
+          filters
+          |> failed_emails_query()
+          |> order_by([e], desc: e.failed_at)
+          |> preload([:recipients, environment: :app])
+          |> limit(^limit)
+          |> Repo.all(),
+        else: []
+
+    recipients =
+      case List.delete(types, :failed) do
+        [] ->
+          []
+
+        kinds ->
+          filters
+          |> failed_recipients_query(kinds)
+          |> order_by([r], desc: r.status_at)
+          |> preload([email: e], email: {e, environment: :app})
+          |> limit(^limit)
+          |> Repo.all()
+      end
+
+    (Enum.map(failed, &failure_from_email/1) ++ Enum.map(recipients, &failure_from_recipient/1))
+    |> Enum.sort_by(& &1.at, {:desc, DateTime})
+    |> Enum.take(limit)
+  end
+
+  def count_failures(filters) do
+    failed = filters |> failed_emails_query() |> Repo.aggregate(:count)
+
+    by_kind =
+      filters
+      |> failed_recipients_query([:not_found, :bounced, :spam])
+      |> group_by([r], [r.status, r.bounce_kind])
+      |> select([r], {r.status, r.bounce_kind, count(r.id)})
+      |> Repo.all()
+      |> Enum.reduce(%{not_found: 0, bounced: 0, spam: 0}, fn {status, kind, count}, acc ->
+        Map.update!(acc, failure_type(status, kind), &(&1 + count))
+      end)
+
+    Map.put(by_kind, :failed, failed)
+  end
+
+  defp failed_emails_query(filters) do
+    from(e in Email,
+      as: :failed_email,
+      where: e.status == :failed and e.failed_at >= ^filters.since
+    )
+    |> failure_filters(filters, :email)
+  end
+
+  defp failed_recipients_query(filters, kinds) do
+    from(r in Recipient,
+      join: e in assoc(r, :email),
+      as: :email,
+      where: r.status in [:bounced, :spam_complaint] and r.status_at >= ^filters.since,
+      where: ^kinds_condition(kinds)
+    )
+    |> failure_filters(filters, :recipient)
+  end
+
+  defp kinds_condition(kinds) do
+    Enum.reduce(kinds, dynamic(false), fn
+      :spam, acc ->
+        dynamic([r], ^acc or r.status == :spam_complaint)
+
+      :not_found, acc ->
+        dynamic([r], ^acc or (r.status == :bounced and r.bounce_kind == :not_found))
+
+      :bounced, acc ->
+        dynamic(
+          [r],
+          ^acc or
+            (r.status == :bounced and (is_nil(r.bounce_kind) or r.bounce_kind != :not_found))
+        )
+    end)
+  end
+
+  defp failure_filters(query, filters, source) do
+    Enum.reduce(filters, query, fn
+      {:environment_id, id}, q when is_binary(id) ->
+        where(q, ^environment_condition(source, id))
+
+      {:provider, p}, q when is_atom(p) and not is_nil(p) ->
+        where(q, ^provider_condition(source, p))
+
+      {:q, term}, q when is_binary(term) and term != "" ->
+        where_address(q, source, "%#{term}%")
+
+      _, q ->
+        q
+    end)
+  end
+
+  defp environment_condition(:email, id), do: dynamic([e], e.environment_id == ^id)
+  defp environment_condition(:recipient, id), do: dynamic([email: e], e.environment_id == ^id)
+
+  defp provider_condition(:email, provider), do: dynamic([e], e.provider == ^provider)
+  defp provider_condition(:recipient, provider), do: dynamic([email: e], e.provider == ^provider)
+
+  defp where_address(query, :email, pattern) do
+    where(
+      query,
+      [e],
+      exists(
+        from r in Recipient,
+          where: r.email_id == parent_as(:failed_email).id and ilike(r.address, ^pattern)
+      )
+    )
+  end
+
+  defp where_address(query, :recipient, pattern),
+    do: where(query, [r], ilike(r.address, ^pattern))
+
+  defp failure_type(:spam_complaint, _kind), do: :spam
+  defp failure_type(:bounced, :not_found), do: :not_found
+  defp failure_type(:bounced, _kind), do: :bounced
+
+  defp failure_from_email(%Email{} = email) do
+    %{
+      id: "email-#{email.id}",
+      type: :failed,
+      at: email.failed_at,
+      email: email,
+      address: Enum.map_join(email.recipients, ", ", & &1.address),
+      reason: email.error_message
+    }
+  end
+
+  defp failure_from_recipient(%Recipient{email: email} = recipient) do
+    %{
+      id: "recipient-#{recipient.id}",
+      type: failure_type(recipient.status, recipient.bounce_kind),
+      at: recipient.status_at,
+      email: email,
+      address: recipient.address,
+      reason:
+        recipient.detail ||
+          if(recipient.status == :spam_complaint, do: "O destinatário marcou como spam")
+    }
   end
 
   def purge_expired(batch_size \\ 500) do

@@ -64,18 +64,20 @@ e-mail nem tela de conta.
 
 ## Visual
 
-Guia de estilos da Setbox em `../../../divisoes/setbox/setbox-stylebook`, na **densidade compacta** de app
-(corpo de 14px, título de tela `text-xl font-semibold`, painel `p-4`, linha de lista `px-4 py-2.5`, controle
-de 36px, raio 8/6/4px; tema de `components/daisyui-compacto.css`). Manrope. **Dois vermelhos:** o 30p
-`#AF0914` (`primary`) em botão de texto pequeno, link e todo texto vermelho; o vivo `#FB0D1C` (`accent`) em
-gráfico: item ativo do rail, controle ligado (`checkbox-accent`, `toggle-accent`), traço de aba, anel de
-foco e borda do campo em foco. Menu em rail à esquerda como o backoffice do PJ Park (cubo da Setbox no
-topo, ícone e rótulo por item; abaixo de `md` vira menu na barra), barra superior com tema e conta
-(`Layouts.app`, atributo `active`), conteúdo em cartões (`CourierWeb.PanelComponents`: `card`,
-`card_section`, `empty_state`, `pill`), avisos em toast no canto inferior. O tema escuro usa os
-tokens escuros do guia de marca (`~/obsidian/setbox/marca/identidade-visual.md`): botão `#E10C19`,
-texto vermelho `#FB0D1C`. Use cores por token (`base-*`, `primary`, `neutral`), nunca hex fixo,
-para os dois temas funcionarem.
+Guia de estilos da Setbox em `../../../divisoes/setbox/setbox-stylebook`, na **densidade compacta** de app.
+O tema daisyUI vem pronto do guia: `assets/css/setbox-daisyui.css` é cópia de `dist/setbox-daisyui.css`,
+importada no `app.css`; não edite a cópia, copie de novo quando a primeira linha (versão e hash) mudar no
+guia. Corpo de 14px, título de tela `text-xl font-semibold`, painel `p-4`, linha de lista `px-4 py-2.5`,
+controle de 36px, raio 8/6/4px. Manrope. **Um vermelho só para interface:** `primary` (#AF0914 no claro,
+#E10C19 no escuro) em botão, item ativo do rail, controle ligado (`checkbox-primary`), foco e borda do
+campo em foco; não use `accent`. Tela de app em **largura total**, mesma margem dos dois lados, sem
+largura máxima em cartão, lista, tabela ou formulário (campos em grade `sm:grid-cols-2 xl:grid-cols-3`).
+Menu em rail à esquerda (Painel, Aplicações, E-mails, Falhas, Providers; cubo da Setbox no topo, ícone e
+rótulo por item; abaixo de `md` vira menu na barra), barra superior com o seletor de tema (um ícone,
+sol ou lua) e a conta (`Layouts.app`, atributo `active`), conteúdo em cartões (`CourierWeb.PanelComponents`:
+`card`, `card_section`, `empty_state`, `pill`), gráficos de linha em `CourierWeb.ChartComponents`, avisos
+em toast no canto inferior. Use cores por token (`base-*`, `primary`, `neutral`, `success`, `warning`,
+`error`, `info`), nunca hex fixo, para os dois temas funcionarem.
 
 **Formulário nunca divide a tela com listagem ou detalhe.** Criar, editar e configurar abrem
 sempre uma tela própria (`/new`, `/:id/edit`, `/:id/<assunto>`), com um `<.card>` contendo os campos

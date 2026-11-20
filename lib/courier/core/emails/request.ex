@@ -15,6 +15,7 @@ defmodule Courier.Core.Emails.Request do
     field :bcc, {:array, :string}, default: []
     field :from, :string
     field :reply_to, :string
+    field :category, Ecto.Enum, values: [:transactional, :marketing]
     field :subject, :string
     field :html_body, :string
     field :text_body, :string
@@ -31,6 +32,7 @@ defmodule Courier.Core.Emails.Request do
     :bcc,
     :from,
     :reply_to,
+    :category,
     :subject,
     :html_body,
     :text_body,
@@ -47,6 +49,7 @@ defmodule Courier.Core.Emails.Request do
     |> update_change(:to, &normalize_list/1)
     |> update_change(:cc, &normalize_list/1)
     |> update_change(:bcc, &normalize_list/1)
+    |> validate_required([:category], message: "is required: transactional or marketing")
     |> validate_required([:subject], message: "can't be blank")
     |> validate_length(:subject, min: 1, max: 2000)
     |> validate_length(:to, min: 1, message: "must have at least one recipient")
@@ -54,6 +57,7 @@ defmodule Courier.Core.Emails.Request do
     |> validate_addresses(:cc)
     |> validate_addresses(:bcc)
     |> validate_recipient_count()
+    |> validate_marketing_recipients()
     |> validate_body()
     |> validate_named_address(:from)
     |> validate_named_address(:reply_to)
@@ -64,6 +68,17 @@ defmodule Courier.Core.Emails.Request do
 
   def changeset(_params),
     do: change(%__MODULE__{}) |> add_error(:base, "body must be a JSON object")
+
+  defp validate_marketing_recipients(changeset) do
+    if get_field(changeset, :category) == :marketing do
+      changeset
+      |> validate_length(:to, is: 1, message: "marketing goes to one recipient per email")
+      |> validate_length(:cc, is: 0, message: "marketing does not accept cc")
+      |> validate_length(:bcc, is: 0, message: "marketing does not accept bcc")
+    else
+      changeset
+    end
+  end
 
   def address_of(value) when is_binary(value) do
     case Regex.named_captures(@named_address, String.trim(value)) do

@@ -14,6 +14,11 @@ defmodule CourierWeb.Router do
     plug :fetch_current_scope_for_user
   end
 
+  pipeline :unsubscribe do
+    plug :accepts, ["html"]
+    plug :put_secure_browser_headers
+  end
+
   pipeline :api do
     plug :accepts, ["json"]
   end
@@ -32,6 +37,13 @@ defmodule CourierWeb.Router do
     get "/emails/:email_id/events", EmailController, :events
   end
 
+  scope "/u", CourierWeb do
+    pipe_through :unsubscribe
+
+    get "/:token", UnsubscribeController, :show
+    post "/:token", UnsubscribeController, :create
+  end
+
   scope "/webhooks", CourierWeb do
     pipe_through :api
 
@@ -44,7 +56,8 @@ defmodule CourierWeb.Router do
 
     live_session :require_authenticated_user,
       on_mount: [{CourierWeb.UserAuth, :require_authenticated}] do
-      live "/", AppLive.Index
+      live "/", DashboardLive
+      live "/apps", AppLive.Index
       live "/apps/new", AppLive.Form, :new
       live "/apps/:id", AppLive.Show
       live "/apps/:id/edit", AppLive.Form, :edit
@@ -56,6 +69,7 @@ defmodule CourierWeb.Router do
       live "/apps/:app_id/environments/:id/webhook", EnvironmentLive.Webhook
       live "/emails", EmailLive.Index
       live "/emails/:id", EmailLive.Show
+      live "/falhas", FailureLive
       live "/providers", ProviderLive.Index
       live "/providers/:provider", ProviderLive.Show
     end

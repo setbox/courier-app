@@ -5,11 +5,14 @@ defmodule Courier.Core.Emails.Email do
   alias Courier.Core.Emails.{Event, Recipient}
 
   @statuses [:queued, :sent, :failed]
+  @categories [:transactional, :marketing]
 
   @primary_key {:id, :binary_id, autogenerate: true}
   @foreign_key_type :binary_id
   schema "emails" do
     field :status, Ecto.Enum, values: @statuses, default: :queued
+    field :category, Ecto.Enum, values: @categories
+    field :provider, Ecto.Enum, values: Courier.Core.Apps.ChannelConfig.providers()
     field :from, :string
     field :subject, :string
     field :reply_to, :string
@@ -35,4 +38,5 @@ defmodule Courier.Core.Emails.Email do
   end
 
   def statuses, do: @statuses
+  def categories, do: @categories
 end

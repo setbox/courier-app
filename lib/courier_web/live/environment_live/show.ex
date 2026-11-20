@@ -3,6 +3,7 @@ defmodule CourierWeb.EnvironmentLive.Show do
 
   alias Courier.Core.Apps
   alias Courier.Core.Apps.ChannelConfig
+  alias Courier.Core.Unsubscribes
   alias CourierWeb.Format
 
   @impl true
@@ -14,6 +15,8 @@ defmodule CourierWeb.EnvironmentLive.Show do
      |> assign(:page_title, "#{environment.app.name} · #{environment.name}")
      |> assign(:environment, environment)
      |> assign(:config, Apps.email_config(environment))
+     |> assign(:unsubscribed_count, Unsubscribes.count(environment))
+     |> assign(:unsubscribed, Unsubscribes.list(environment, 10))
      |> assign(:revealed_token, nil)
      |> assign(:revealed_secret, nil)}
   end
@@ -251,6 +254,33 @@ defmodule CourierWeb.EnvironmentLive.Show do
           <.button navigate={~p"/apps/#{@environment.app}/environments/#{@environment}/recipients"}>
             Editar listas
           </.button>
+        </div>
+      </.card_section>
+
+      <.card_section title="Descadastros de marketing">
+        <:subtitle>
+          Quem cancelou a inscrição pelo link dos e-mails de marketing. Marketing para estes endereços é
+          recusado com <code>recipient_unsubscribed</code>; transacional continua chegando.
+        </:subtitle>
+
+        <p :if={@unsubscribed_count == 0} class="text-sm text-neutral">
+          Ninguém cancelou a inscrição.
+        </p>
+
+        <div :if={@unsubscribed_count > 0} id="unsubscribed" class="space-y-2 text-sm">
+          <p class="text-neutral">
+            {Format.number(@unsubscribed_count)} {if @unsubscribed_count == 1,
+              do: "endereço",
+              else: "endereços"}, os mais recentes:
+          </p>
+          <ul class="divide-y divide-base-300">
+            <li :for={s <- @unsubscribed} class="flex justify-between gap-4 py-1.5">
+              <span class="truncate">{s.address}</span>
+              <span class="tabular text-xs whitespace-nowrap text-neutral">
+                {Format.datetime(s.inserted_at)}
+              </span>
+            </li>
+          </ul>
         </div>
       </.card_section>
 

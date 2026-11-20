@@ -13,7 +13,7 @@ defmodule CourierWeb.AppLiveTest do
   end
 
   test "the list has no form, only the link to the new app page", %{conn: conn} do
-    {:ok, lv, html} = live(conn, ~p"/")
+    {:ok, lv, html} = live(conn, ~p"/apps")
 
     refute html =~ "<form"
 
@@ -73,7 +73,7 @@ defmodule CourierWeb.AppLiveTest do
 
   test "lists apps with their environments", %{conn: conn} do
     environment = environment_fixture(name: "stage")
-    {:ok, _lv, html} = live(conn, ~p"/")
+    {:ok, _lv, html} = live(conn, ~p"/apps")
 
     assert html =~ environment.app.name
     assert html =~ "stage"

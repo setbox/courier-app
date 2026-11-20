@@ -121,6 +121,7 @@ defmodule Courier.Core.Webhooks do
       email: %{
         id: email.id,
         status: email.status,
+        category: email.category,
         subject: email.subject,
         metadata: email.metadata,
         idempotency_key: email.idempotency_key

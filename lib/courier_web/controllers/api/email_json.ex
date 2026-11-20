@@ -14,6 +14,8 @@ defmodule CourierWeb.Api.EmailJSON do
     %{
       id: email.id,
       status: email.status,
+      category: email.category,
+      provider: email.provider,
       from: email.from,
       subject: email.subject,
       reply_to: email.reply_to,

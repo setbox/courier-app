@@ -66,6 +66,22 @@ defmodule Courier.Core.EmailsTest do
       assert errors.to == ["invalid address: not-an-email"]
       assert errors.subject
       assert errors.html_body == ["html_body or text_body is required"]
+      assert errors.category == ["is required: transactional or marketing"]
+    end
+
+    test "stores the category and sends marketing through the Postmark broadcast stream", %{
+      environment: environment
+    } do
+      {:ok, email, :created} =
+        Emails.submit(environment, email_params(%{"category" => "marketing"}))
+
+      assert email.category == :marketing
+      assert email.message_stream == "broadcast"
+
+      {:error, changeset} =
+        Emails.submit(environment, email_params(%{"category" => "newsletter"}))
+
+      assert errors_on(changeset).category
     end
 
     test "limits recipients and metadata", %{environment: environment} do
@@ -278,6 +294,7 @@ defmodule Courier.Core.EmailsTest do
       assert event.type == :bounce
       recipient = Repo.get!(Emails.Recipient, event.recipient_id)
       assert recipient.status == :bounced
+      assert recipient.bounce_kind == :not_found
       assert recipient.detail == "hard_bounce: mailbox does not exist"
     end
 

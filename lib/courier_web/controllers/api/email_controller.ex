@@ -34,6 +34,15 @@ defmodule CourierWeb.Api.EmailController do
           %{recipients: addresses}
         )
 
+      {:error, {:recipient_unsubscribed, addresses}} ->
+        Error.send(
+          conn,
+          422,
+          "recipient_unsubscribed",
+          "Some recipients unsubscribed from marketing in this environment",
+          %{recipients: addresses}
+        )
+
       {:error, :storage_unavailable} ->
         Error.send(conn, 503, "storage_unavailable", "Could not store the message, try again")
 

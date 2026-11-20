@@ -49,6 +49,7 @@ defmodule Courier.Workers.SendEmailTest do
 
     email = Repo.get!(Email, email.id)
     assert email.status == :sent
+    assert email.provider == :postmark
     assert email.provider_message_id == "pm-42"
     assert email.sent_at
     assert email.attempts == 1

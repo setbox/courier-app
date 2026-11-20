@@ -14,6 +14,7 @@ defmodule Courier.Core.Emails.Recipient do
     field :status, Ecto.Enum, values: @statuses, default: :pending
     field :status_at, :utc_datetime
     field :detail, :string
+    field :bounce_kind, Ecto.Enum, values: [:not_found, :other]
     field :opened_at, :utc_datetime
     field :clicked_at, :utc_datetime
 
