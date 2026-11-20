@@ -109,45 +109,32 @@ defmodule Courier.Core.AppsTest do
       assert errors_on(changeset).server_token
     end
 
-    test "saves a Mailtrap Sandbox config without touching Postmark" do
+    test "saves a sandbox config without a token and without touching any provider" do
       environment = environment_fixture()
 
       {:ok, config} =
         Apps.save_email_config(
           environment,
-          %{
-            "provider" => "mailtrap_sandbox",
-            "server_token" => "mt-token-5678",
-            "mailtrap_inbox_id" => " 4242 ",
-            "from_email" => "a@exemplo.com.br"
-          },
+          %{"provider" => "sandbox", "from_email" => "a@exemplo.com.br"},
           "u"
         )
 
-      assert config.provider == :mailtrap_sandbox
-      assert config.mailtrap_inbox_id == "4242"
-      assert config.server_token_hint == "5678"
-      assert is_nil(config.postmark_webhook_id)
+      assert config.provider == :sandbox
+      assert is_nil(config.server_token)
       assert ChannelConfig.ready?(config)
       refute_received {:postmark_request, _}
+      refute_received {:brevo_request, _}
     end
 
-    test "requires a numeric inbox id for Mailtrap Sandbox" do
-      environment = environment_fixture()
+    test "switching to the sandbox drops the provider token" do
+      {environment, _token} = configured_environment_fixture()
 
-      attrs = %{
-        "provider" => "mailtrap_sandbox",
-        "server_token" => "mt-token",
-        "from_email" => "a@exemplo.com.br"
-      }
+      {:ok, config} = Apps.save_email_config(environment, %{"provider" => "sandbox"}, "u")
 
-      {:error, changeset} = Apps.save_email_config(environment, attrs, "u")
-      assert "informe o Inbox ID do Mailtrap" in errors_on(changeset).mailtrap_inbox_id
-
-      {:error, changeset} =
-        Apps.save_email_config(environment, Map.put(attrs, "mailtrap_inbox_id", "abc"), "u")
-
-      assert "deve ter só números" in errors_on(changeset).mailtrap_inbox_id
+      assert config.provider == :sandbox
+      assert is_nil(config.server_token)
+      assert is_nil(config.server_token_hint)
+      assert is_nil(config.postmark_webhook_id)
     end
 
     test "saves a Brevo config and registers the webhook with Basic Auth in the URL" do
@@ -253,11 +240,11 @@ defmodule Courier.Core.AppsTest do
       {:error, changeset} =
         Apps.save_email_config(
           environment,
-          %{"provider" => "mailtrap_sandbox", "mailtrap_inbox_id" => "1"},
+          %{"provider" => "brevo"},
           "u"
         )
 
-      assert "informe o API Token do Mailtrap" in errors_on(changeset).server_token
+      assert "informe a API Key do Brevo" in errors_on(changeset).server_token
     end
   end
 

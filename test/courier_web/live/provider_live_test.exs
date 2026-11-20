@@ -12,7 +12,7 @@ defmodule CourierWeb.ProviderLiveTest do
     {:ok, _lv, html} = live(conn, ~p"/providers")
 
     assert html =~ "Postmark"
-    assert html =~ "Mailtrap Sandbox"
+    assert html =~ "Sandbox do Courier"
     assert html =~ "Brevo"
     assert html =~ "1 ambiente"
     refute html =~ "<form"
@@ -29,7 +29,7 @@ defmodule CourierWeb.ProviderLiveTest do
   end
 
   test "shows an empty state when nobody uses the provider", %{conn: conn} do
-    {:ok, _lv, html} = live(conn, ~p"/providers/mailtrap_sandbox")
+    {:ok, _lv, html} = live(conn, ~p"/providers/sandbox")
     assert html =~ "Nenhum ambiente usa este provider."
   end
 

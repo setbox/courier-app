@@ -324,6 +324,9 @@ defmodule Courier.Core.Emails do
   defp encode_cursor(%Email{inserted_at: inserted_at, id: id}),
     do: Base.url_encode64("#{DateTime.to_iso8601(inserted_at)}|#{id}", padding: false)
 
+  def sandbox?(%Email{provider_message_id: "sandbox-" <> _}), do: true
+  def sandbox?(%Email{}), do: false
+
   def mark_sent(%Email{} = email, message_id) do
     now = DateTime.utc_now(:second)
 

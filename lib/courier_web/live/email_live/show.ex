@@ -57,6 +57,14 @@ defmodule CourierWeb.EmailLive.Show do
         </:actions>
       </.header>
 
+      <div
+        :if={Emails.sandbox?(@email)}
+        id="sandbox-notice"
+        class="rounded-box border border-warning/30 bg-warning/10 p-4 text-sm"
+      >
+        Sandbox: o Courier guardou este e-mail e não enviou a ninguém.
+      </div>
+
       <.card_section title="Envio">
         <dl class="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-[180px_minmax(0,1fr)]">
           <dt class="font-semibold text-neutral">Id</dt>
@@ -84,7 +92,7 @@ defmodule CourierWeb.EmailLive.Show do
           <dt class="font-semibold text-neutral">Tentativas</dt>
           <dd>{@email.attempts}</dd>
           <%= if @email.provider_message_id do %>
-            <dt class="font-semibold text-neutral">MessageID (Postmark)</dt>
+            <dt class="font-semibold text-neutral">MessageID do provider</dt>
             <dd><code>{@email.provider_message_id}</code></dd>
           <% end %>
           <%= if @email.idempotency_key do %>

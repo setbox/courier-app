@@ -23,7 +23,7 @@ estável; a mensagem pode mudar.
 | 401 | `invalid_api_key` | Token ausente ou inválido |
 | 404 | `not_found` | E-mail não existe neste ambiente |
 | 422 | `invalid_request` | Campo inválido; `details` traz a lista por campo |
-| 422 | `provider_not_configured` | O ambiente não tem token do provider, remetente ou, no Mailtrap Sandbox, Inbox ID |
+| 422 | `provider_not_configured` | O ambiente não tem remetente ou, no Postmark e no Brevo, token do provider |
 | 422 | `recipient_not_allowed` | Algum destinatário está fora da whitelist ou na blacklist do ambiente; `details.recipients` lista os barrados. O pedido inteiro é recusado |
 | 503 | `storage_unavailable` | O corpo não pôde ser gravado; tente de novo com a mesma `Idempotency-Key` |
 
@@ -40,7 +40,7 @@ estável; a mensagem pode mudar.
 | `cc`, `bcc` | lista de e-mails | não | Máximo de 50 destinatários somando `to`, `cc` e `bcc` |
 | `from` | texto | não | `email@dominio` ou `Nome <email@dominio>`. Padrão: o da configuração. No Postmark, precisa estar verificado |
 | `reply_to` | texto | não | |
-| `tag` | texto | não | Tag do Postmark, `tags` do Brevo ou `category` do Mailtrap |
+| `tag` | texto | não | Tag do Postmark ou `tags` do Brevo |
 | `message_stream` | texto | não | Padrão: o da configuração (`outbound`) |
 | `metadata` | objeto | não | Até 50 chaves, valores simples, 8 KB. Volta nas consultas e nos webhooks |
 | `track_opens`, `track_links` | booleano | não | Padrão: o da configuração |
@@ -73,9 +73,9 @@ Idempotent-Replayed: false
 Num ambiente com Brevo, `metadata`, `message_stream`, `track_opens` e `track_links` não vão ao
 provider (o rastreio é da conta do Brevo); os eventos chegam como no Postmark.
 
-Num ambiente com Mailtrap Sandbox o e-mail vai para a caixa de testes do Mailtrap e não chega ao
-destinatário. `metadata` vira `custom_variables` (valores como texto); `message_stream`,
-`track_opens` e `track_links` são ignorados; não há eventos de entrega.
+Num ambiente com o Sandbox do Courier o e-mail não sai do Courier: fica guardado, com o conteúdo
+visível na tela de E-mails, e não chega ao destinatário. A resposta e o fluxo são os mesmos
+(`202`, depois `sent`), com `provider_message_id` começando por `sandbox-`; não há eventos de entrega.
 
 O Courier envia só e-mail transacional: não acrescenta link de descadastro.
 
@@ -151,7 +151,7 @@ Courier-Signature: t=1762782734,v1=5f1c...
 ```
 
 Tipos: `email.sent`, `email.failed`, `email.delivery`, `email.bounce`, `email.spam_complaint`,
-`email.open`, `email.click`, `email.subscription_change`. Num ambiente com Mailtrap Sandbox só chegam
+`email.open`, `email.click`, `email.subscription_change`. Num ambiente com o Sandbox do Courier só chegam
 `email.sent` e `email.failed`, gerados pelo próprio Courier.
 
 **Validar a assinatura**: `v1` é o HMAC-SHA256, em hexadecimal minúsculo, de

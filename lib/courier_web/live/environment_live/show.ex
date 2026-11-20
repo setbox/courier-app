@@ -143,8 +143,10 @@ defmodule CourierWeb.EnvironmentLive.Show do
         >
           <dt class="font-semibold text-neutral">Provider</dt>
           <dd>{ChannelConfig.provider_label(@config.provider)}</dd>
-          <dt class="font-semibold text-neutral">{token_label(@config.provider)}</dt>
-          <dd><code>••••{@config.server_token_hint}</code></dd>
+          <%= if @config.provider != :sandbox do %>
+            <dt class="font-semibold text-neutral">{token_label(@config.provider)}</dt>
+            <dd><code>••••{@config.server_token_hint}</code></dd>
+          <% end %>
           <dt class="font-semibold text-neutral">Remetente</dt>
           <dd>{@config.from_name} &lt;{@config.from_email}&gt;</dd>
           <%= if @config.provider == :postmark do %>
@@ -155,15 +157,15 @@ defmodule CourierWeb.EnvironmentLive.Show do
             <dt class="font-semibold text-neutral">Rastrear cliques</dt>
             <dd>{yes_no(@config.track_links)}</dd>
           <% end %>
-          <%= if @config.provider == :mailtrap_sandbox do %>
-            <dt class="font-semibold text-neutral">Inbox ID</dt>
-            <dd><code>{@config.mailtrap_inbox_id}</code></dd>
-          <% end %>
         </dl>
 
-        <p :if={@config && @config.provider == :mailtrap_sandbox} class="text-sm text-neutral">
-          Sandbox: os e-mails ficam na caixa de testes do Mailtrap e não chegam aos destinatários.
-          Não há eventos de entrega, abertura ou clique.
+        <p :if={@config && @config.provider == :sandbox} class="text-sm text-neutral">
+          Sandbox: o Courier guarda os e-mails e não envia a ninguém. Veja o conteúdo em <.link
+            navigate={~p"/emails?#{[environment_id: @environment.id]}"}
+            class="font-semibold text-primary hover:underline"
+          >
+            E-mails
+          </.link>. Não há eventos de entrega, abertura ou clique.
         </p>
         <p :if={@config && @config.provider == :brevo} class="text-sm text-neutral">
           Rastreio de abertura e clique é ligado na conta do Brevo.

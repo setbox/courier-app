@@ -18,11 +18,14 @@ Sabatina de 2026-11-10, que fechou o desenho da primeira entrega do envio de e-m
   regra do sistema olha o nome.
 - **Uma configuração por (ambiente, canal).** O ambiente pode ter e-mail hoje e SMS amanhã, cada canal
   com um provider. Na primeira entrega só existe e-mail → Postmark.
-- **Mailtrap Sandbox como segundo provider de e-mail** (2026-11-10). Só o Sandbox, não o envio do
-  Mailtrap: serve para ambientes de teste (local, dev, stage), em que o e-mail cai na caixa de testes
-  e nunca chega ao destinatário. Configuração com API Token e Inbox ID; o Sandbox não manda eventos,
-  então o e-mail para em `sent` e os destinatários ficam `pending`. Rastreio e message stream são do
-  Postmark e não se aplicam. Trocar de provider exige informar o token novo.
+- **Mailtrap Sandbox como segundo provider de e-mail** (2026-11-10), substituído em 2026-11-20 pelo
+  Sandbox do Courier (abaixo).
+- **Sandbox do Courier no lugar do Mailtrap** (2026-11-20). O próprio Courier é o provider de teste
+  (local, dev, stage): guarda o e-mail, mostra o conteúdo na tela de E-mails e não envia a ninguém.
+  Não precisa de credencial, só de remetente. O e-mail vai a `sent` com `provider_message_id`
+  `sandbox-<uuid>`, sem eventos de entrega. As configurações que usavam o Mailtrap viraram sandbox
+  na migration. O que o Mailtrap fazia e o sandbox não faz (análise de spam e de HTML, SMTP, caixa
+  compartilhada) ficou em issues. Trocar de provider para Postmark ou Brevo exige informar o token.
 - **Brevo como terceiro provider de e-mail** (2026-11-19). Envio por `POST /v3/smtp/email` com
   `api-key` e eventos por webhook transacional cadastrado ao salvar, como no Postmark. O Brevo só
   documenta autenticação por credencial na URL, então o Courier põe `courier:<senha>` na URL e

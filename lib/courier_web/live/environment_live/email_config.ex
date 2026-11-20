@@ -102,17 +102,15 @@ defmodule CourierWeb.EnvironmentLive.EmailConfig do
             label="Provider"
             options={provider_options()}
           />
-          <p
-            :if={@provider == :mailtrap_sandbox}
-            class="mb-2 self-end text-sm text-neutral sm:pb-2"
-          >
-            Sandbox: o e-mail fica na caixa de testes do Mailtrap e não chega ao destinatário.
+          <p :if={@provider == :sandbox} class="mb-2 self-end text-sm text-neutral sm:pb-2">
+            O Courier guarda o e-mail e não envia: o conteúdo fica na tela de E-mails.
           </p>
           <p :if={@provider == :brevo} class="mb-2 self-end text-sm text-neutral sm:pb-2">
             Rastreio de abertura e clique é ligado na conta do Brevo.
           </p>
           <div :if={@provider == :postmark} class="hidden sm:block"></div>
           <.input
+            :if={@provider != :sandbox}
             field={@form[:server_token]}
             type="password"
             label={token_label(@provider)}
@@ -127,12 +125,6 @@ defmodule CourierWeb.EnvironmentLive.EmailConfig do
             :if={@provider == :postmark}
             field={@form[:message_stream]}
             label="Message stream (transacional)"
-          />
-          <.input
-            :if={@provider == :mailtrap_sandbox}
-            field={@form[:mailtrap_inbox_id]}
-            label="Inbox ID"
-            inputmode="numeric"
           />
           <.input field={@form[:from_email]} type="email" label="E-mail do remetente" />
           <.input field={@form[:from_name]} label="Nome do remetente" />

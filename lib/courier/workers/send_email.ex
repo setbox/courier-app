@@ -1,7 +1,7 @@
 defmodule Courier.Workers.SendEmail do
   use Oban.Worker, queue: :emails, max_attempts: 10
 
-  alias Courier.Connectors.{Brevo, Mailtrap, Postmark}
+  alias Courier.Connectors.{Brevo, Postmark}
   alias Courier.Core.Apps
   alias Courier.Core.Apps.ChannelConfig
   alias Courier.Core.Emails
@@ -53,13 +53,8 @@ defmodule Courier.Workers.SendEmail do
     {:error, message}
   end
 
-  defp send_to_provider(%ChannelConfig{provider: :mailtrap_sandbox} = config, email, body),
-    do:
-      Mailtrap.send_email(
-        config.server_token,
-        config.mailtrap_inbox_id,
-        mailtrap_payload(email, body)
-      )
+  defp send_to_provider(%ChannelConfig{provider: :sandbox}, _email, _body),
+    do: {:ok, %{message_id: "sandbox-#{Ecto.UUID.generate()}"}}
 
   defp send_to_provider(%ChannelConfig{provider: :brevo} = config, email, body),
     do: Brevo.send_email(config.server_token, brevo_payload(email, body))
@@ -83,23 +78,6 @@ defmodule Courier.Workers.SendEmail do
     |> Map.new()
   end
 
-  def mailtrap_payload(%Email{} = email, body) do
-    %{
-      "from" => mailbox(email.from),
-      "to" => mailboxes(email, :to),
-      "cc" => mailboxes(email, :cc),
-      "bcc" => mailboxes(email, :bcc),
-      "reply_to" => email.reply_to && mailbox(email.reply_to),
-      "subject" => email.subject,
-      "html" => body.html_body,
-      "text" => body.text_body,
-      "category" => email.tag,
-      "custom_variables" => custom_variables(email.metadata)
-    }
-    |> Enum.reject(fn {_key, value} -> value in [nil, "", [], %{}] end)
-    |> Map.new()
-  end
-
   defp mailbox(address) do
     case Regex.run(~r/^\s*(.*?)\s*<([^>]+)>\s*$/, address) do
       [_, "", email] -> %{"email" => email}
@@ -113,11 +91,6 @@ defmodule Courier.Workers.SendEmail do
     |> Enum.filter(&(&1.kind == kind))
     |> Enum.map(&%{"email" => &1.address})
   end
-
-  defp custom_variables(metadata) when is_map(metadata),
-    do: Map.new(metadata, fn {key, value} -> {to_string(key), to_string(value)} end)
-
-  defp custom_variables(_metadata), do: %{}
 
   def payload(%Email{} = email, body) do
     %{

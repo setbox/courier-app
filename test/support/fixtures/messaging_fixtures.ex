@@ -35,16 +35,14 @@ defmodule Courier.MessagingFixtures do
     {environment, token}
   end
 
-  def mailtrap_environment_fixture(attrs \\ %{}) do
+  def sandbox_environment_fixture(attrs \\ %{}) do
     environment = environment_fixture(attrs)
 
     {:ok, _config} =
       Apps.save_email_config(
         environment,
         %{
-          "provider" => "mailtrap_sandbox",
-          "server_token" => "mt-token-1234",
-          "mailtrap_inbox_id" => "4242",
+          "provider" => "sandbox",
           "from_email" => "naoresponda@exemplo.com.br",
           "from_name" => "Exemplo"
         },

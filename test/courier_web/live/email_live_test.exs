@@ -36,12 +36,24 @@ defmodule CourierWeb.EmailLiveTest do
 
     {:ok, lv, html} = live(conn, ~p"/emails/#{email}")
     assert html =~ "ana@exemplo.com.br"
-    assert html =~ "Enviado ao Postmark"
+    assert html =~ "Enviado ao provider"
 
     html = lv |> element("#show-body") |> render_click()
     assert html =~ "Olá"
 
     html = lv |> element("#deliveries button", "Reenviar") |> render_click()
     assert html =~ "Reenvio agendado"
+  end
+
+  test "marks an email kept by the sandbox", %{conn: conn} do
+    {environment, _token} = sandbox_environment_fixture()
+    email = email_fixture(environment)
+    {:ok, _} = Emails.mark_sent(email, "sandbox-1")
+
+    {:ok, lv, _html} = live(conn, ~p"/emails/#{email}")
+    assert has_element?(lv, "#sandbox-notice")
+
+    {:ok, lv, _html} = live(conn, ~p"/emails/#{email_fixture(environment)}")
+    refute has_element?(lv, "#sandbox-notice")
   end
 end

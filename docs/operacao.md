@@ -45,12 +45,12 @@ remetente precisa estar verificado no Brevo. Ao salvar, o Courier cadastra um we
 o Brevo só documenta autenticação por credencial na URL. Rastreio de abertura e clique é ligado na
 conta do Brevo, não por e-mail. O Brevo limita a 40 webhooks por conta.
 
-## Mailtrap Sandbox
+## Sandbox do Courier
 
-Para ambientes de teste. Na tela do e-mail do ambiente, escolha "Mailtrap Sandbox" e informe o API
-Token (Settings → API Tokens, com acesso à inbox) e o Inbox ID (o número na URL da inbox,
-`/inboxes/<id>/messages`). O Courier envia para `https://sandbox.api.mailtrap.io/api/send/<id>`. Não
-há webhook: o Sandbox não manda eventos.
+Para ambientes de teste (local, dev, stage). Na tela do e-mail do ambiente, escolha "Sandbox do
+Courier" e informe só o remetente. A aplicação envia pela API como sempre; o Courier guarda o e-mail
+e não envia a ninguém. O conteúdo (HTML e texto) fica em E-mails, filtrando pelo ambiente, com o aviso
+"Sandbox" no detalhe. Não há webhook nem eventos de entrega.
 
 ## Filas (Oban)
 

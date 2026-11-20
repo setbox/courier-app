@@ -19,7 +19,7 @@ defmodule CourierWeb.Format do
   def recipient_status(:spam_complaint), do: "Marcado como spam"
 
   def event_type(:queued), do: "Recebido"
-  def event_type(:sent), do: "Enviado ao Postmark"
+  def event_type(:sent), do: "Enviado ao provider"
   def event_type(:failed), do: "Falhou"
   def event_type(:delivery), do: "Entregue"
   def event_type(:bounce), do: "Devolvido"
