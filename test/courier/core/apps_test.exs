@@ -163,8 +163,8 @@ defmodule Courier.Core.AppsTest do
       assert opts[:json]["type"] == "transactional"
       assert "delivered" in opts[:json]["events"]
 
-      assert opts[:json]["url"] ==
-               "https://courier:#{config.inbound_password}@courier.test/webhooks/brevo/#{environment.id}"
+      assert opts[:json]["url"] == "https://courier.test/webhooks/brevo/#{environment.id}"
+      assert opts[:json]["auth"] == %{"type" => "bearer", "token" => config.inbound_password}
 
       refute_received {:postmark_request, _}
     end

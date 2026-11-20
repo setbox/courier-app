@@ -193,9 +193,9 @@ defmodule CourierWeb.EnvironmentLive.Show do
           use a URL e a credencial abaixo (Basic Auth), com todos os eventos marcados.
         </:subtitle>
         <:subtitle :if={@config.provider == :brevo}>
-          O Courier cadastra este webhook transacional no Brevo ao salvar a configuração. Para
-          cadastrar à mão, ponha o usuário e a senha abaixo na URL
-          (<code>https://usuário:senha@...</code>).
+          O Courier cadastra este webhook transacional no Brevo ao salvar a configuração, com a
+          senha abaixo como token Bearer. Para cadastrar à mão, use a URL e o usuário e a senha
+          abaixo (Basic Auth).
         </:subtitle>
 
         <div

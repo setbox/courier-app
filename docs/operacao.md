@@ -41,8 +41,9 @@ Em dev o Postmark não alcança `localhost`, então os eventos de entrega não c
 Na tela do e-mail do ambiente, escolha "Brevo" e informe a API Key (SMTP & API → API Keys). O
 remetente precisa estar verificado no Brevo. Ao salvar, o Courier cadastra um webhook transacional
 (`POST /v3/webhooks`) com os eventos `delivered`, `hardBounce`, `blocked`, `invalid`, `spam`,
-`opened`, `click` e `unsubscribed`, apontando para `https://courier:<senha>@<host>/webhooks/brevo/<ambiente>`:
-o Brevo só documenta autenticação por credencial na URL. Rastreio de abertura e clique é ligado na
+`opened`, `click` e `unsubscribed`, apontando para `https://<host>/webhooks/brevo/<ambiente>` com a senha do ambiente como token
+Bearer: a API do Brevo recusa credencial na URL e só aceita `auth` Bearer. Cadastrado à mão pela
+tela do Brevo, use Basic Auth com o usuário `courier` e a mesma senha. Rastreio de abertura e clique é ligado na
 conta do Brevo, não por e-mail. O Brevo limita a 40 webhooks por conta.
 
 ## Sandbox do Courier

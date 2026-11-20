@@ -27,8 +27,13 @@ defmodule Courier.Connectors.Brevo do
     end
   end
 
-  def upsert_webhook(api_key, webhook_id, url) when is_binary(api_key) do
-    body = %{"url" => url, "description" => "Courier", "events" => @events}
+  def upsert_webhook(api_key, webhook_id, url, token) when is_binary(api_key) do
+    body = %{
+      "url" => url,
+      "description" => "Courier",
+      "events" => @events,
+      "auth" => %{"type" => "bearer", "token" => token}
+    }
 
     case update_webhook(api_key, webhook_id, body) do
       {:ok, id} -> {:ok, id}
@@ -37,7 +42,7 @@ defmodule Courier.Connectors.Brevo do
     end
   end
 
-  def upsert_webhook(_api_key, _webhook_id, _url), do: {:error, :missing_api_key}
+  def upsert_webhook(_api_key, _webhook_id, _url, _token), do: {:error, :missing_api_key}
 
   def normalize_message_id(message_id) when is_binary(message_id) do
     message_id |> String.trim() |> String.trim_leading("<") |> String.trim_trailing(">")

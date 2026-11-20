@@ -226,10 +226,13 @@ defmodule Courier.Core.Apps do
   end
 
   def register_brevo_webhook(%ChannelConfig{} = config, inbound_url) do
-    url = with_inbound_credentials(inbound_url, config.inbound_password)
-
     changes =
-      case Brevo.upsert_webhook(config.server_token, config.brevo_webhook_id, url) do
+      case Brevo.upsert_webhook(
+             config.server_token,
+             config.brevo_webhook_id,
+             inbound_url,
+             config.inbound_password
+           ) do
         {:ok, webhook_id} -> [brevo_webhook_id: webhook_id, brevo_webhook_error: nil]
         {:error, reason} -> [brevo_webhook_error: Brevo.describe_error(reason)]
       end
@@ -237,12 +240,5 @@ defmodule Courier.Core.Apps do
     config
     |> Ecto.Changeset.change(changes)
     |> Repo.update!()
-  end
-
-  def with_inbound_credentials(inbound_url, password) do
-    inbound_url
-    |> URI.parse()
-    |> Map.put(:userinfo, "#{inbound_username()}:#{password}")
-    |> URI.to_string()
   end
 end

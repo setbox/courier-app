@@ -27,9 +27,10 @@ Sabatina de 2026-11-10, que fechou o desenho da primeira entrega do envio de e-m
   na migration. O que o Mailtrap fazia e o sandbox não faz (análise de spam e de HTML, SMTP, caixa
   compartilhada) ficou em issues. Trocar de provider para Postmark ou Brevo exige informar o token.
 - **Brevo como terceiro provider de e-mail** (2026-11-19). Envio por `POST /v3/smtp/email` com
-  `api-key` e eventos por webhook transacional cadastrado ao salvar, como no Postmark. O Brevo só
-  documenta autenticação por credencial na URL, então o Courier põe `courier:<senha>` na URL e
-  confere com o mesmo Basic Auth do Postmark. O `messageId` vem com `<>` e os eventos às vezes sem:
+  `api-key` e eventos por webhook transacional cadastrado ao salvar, como no Postmark. A API do Brevo
+  recusa credencial na URL ("Enter valid notify url") e só aceita `auth` do tipo `bearer` (Basic
+  só pela tela do Brevo), então o Courier cadastra a senha do ambiente como token Bearer e aceita,
+  na entrada, Bearer ou o mesmo Basic Auth do Postmark (corrigido em 2026-11-20). O `messageId` vem com `<>` e os eventos às vezes sem:
   o Courier guarda sem os sinais. `soft_bounce` e `deferred` são ignorados (o Brevo tenta de novo);
   `hard_bounce`, `blocked` e `invalid_email` viram bounce. Respostas `400` a `403` falham na hora;
   o resto é transitório.

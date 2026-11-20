@@ -39,12 +39,34 @@ defmodule CourierWeb.BrevoWebhookControllerTest do
     assert [%{status: :delivered}] = Emails.get_email!(email.id).recipients
   end
 
+  test "accepts the password as a Bearer token, the way the Brevo API registers it", %{
+    conn: conn,
+    environment: environment,
+    config: config,
+    email: email
+  } do
+    conn =
+      conn
+      |> put_req_header("authorization", "Bearer #{config.inbound_password}")
+      |> post(~p"/webhooks/brevo/#{environment.id}", event())
+
+    assert json_response(conn, 200) == %{"received" => true}
+    assert [%{status: :delivered}] = Emails.get_email!(email.id).recipients
+  end
+
   test "refuses a missing or wrong password", %{conn: conn, environment: environment} do
     assert conn |> post(~p"/webhooks/brevo/#{environment.id}", event()) |> json_response(401)
 
     conn =
       conn
       |> put_req_header("authorization", Plug.BasicAuth.encode_basic_auth("courier", "wrong"))
+      |> post(~p"/webhooks/brevo/#{environment.id}", event())
+
+    assert json_response(conn, 401)
+
+    conn =
+      build_conn()
+      |> put_req_header("authorization", "Bearer wrong")
       |> post(~p"/webhooks/brevo/#{environment.id}", event())
 
     assert json_response(conn, 401)

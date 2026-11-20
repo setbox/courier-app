@@ -65,7 +65,7 @@ não há eventos de entrega, então o destinatário fica em `pending`. Uma devol
    - Outro status, timeout ou MinIO indisponível: nova tentativa com o backoff do Oban; na décima,
      `failed`.
 3. **Eventos do Postmark** (`POST /webhooks/postmark/:environment_id`, Basic Auth do ambiente) e
-   **do Brevo** (`POST /webhooks/brevo/:environment_id`, mesma credencial, aplicados por
+   **do Brevo** (`POST /webhooks/brevo/:environment_id`, mesma senha, como Bearer ou Basic, aplicados por
    `Courier.Core.Emails.apply_brevo_event/2`: `delivered` → entrega; `hard_bounce`, `blocked`,
    `invalid_email` → bounce; `spam`; `opened`; `click`; `unsubscribed`; o resto é ignorado). O
    sandbox não gera eventos.
