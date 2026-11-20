@@ -198,7 +198,7 @@ defmodule CourierWeb.CoreComponents do
             name={@name}
             value="true"
             checked={@checked}
-            class={@class || "checkbox checkbox-sm checkbox-accent"}
+            class={@class || "checkbox checkbox-sm checkbox-primary"}
             {@rest}
           />{@label}
         </span>

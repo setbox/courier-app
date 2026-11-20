@@ -67,25 +67,17 @@ defmodule CourierWeb.PanelComponents do
   def pill(assigns) do
     ~H"""
     <span
-      class={[
-        "inline-flex h-[22px] items-center gap-1.5 rounded-full px-2.5 text-xs font-semibold whitespace-nowrap",
-        pill_colors(@tone)
-      ]}
+      class={["badge badge-soft badge-sm gap-1.5 font-semibold whitespace-nowrap", pill_tone(@tone)]}
       {@rest}
     >
-      <span class={["size-1.5 rounded-full", pill_dot(@tone)]} aria-hidden="true"></span>
+      <span class="size-1.5 rounded-full bg-current" aria-hidden="true"></span>
       {render_slot(@inner_block)}
     </span>
     """
   end
 
-  defp pill_colors(:ok), do: "bg-success/12 text-success"
-  defp pill_colors(:pending), do: "bg-warning/12 text-warning"
-  defp pill_colors(:error), do: "bg-error/12 text-error"
-  defp pill_colors(:neutral), do: "bg-base-300 text-neutral"
-
-  defp pill_dot(:ok), do: "bg-success"
-  defp pill_dot(:pending), do: "bg-warning"
-  defp pill_dot(:error), do: "bg-error"
-  defp pill_dot(:neutral), do: "bg-neutral"
+  defp pill_tone(:ok), do: "badge-success"
+  defp pill_tone(:pending), do: "badge-warning"
+  defp pill_tone(:error), do: "badge-error"
+  defp pill_tone(:neutral), do: "badge-neutral"
 end

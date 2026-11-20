@@ -32,10 +32,7 @@ defmodule CourierWeb.Layouts do
         >
           <span class={[
             "flex h-8 w-14 items-center justify-center rounded-full transition-colors",
-            if(@active == key,
-              do: "bg-accent text-accent-content",
-              else: "group-hover:bg-accent/10 group-hover:text-accent"
-            )
+            if(@active == key, do: "bg-primary text-primary-content", else: "group-hover:bg-base-300")
           ]}>
             <.icon name={icon} class="size-5" />
           </span>
