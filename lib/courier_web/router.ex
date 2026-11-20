@@ -37,6 +37,25 @@ defmodule CourierWeb.Router do
     get "/emails/:email_id/events", EmailController, :events
   end
 
+  pipeline :mcp do
+    plug :accepts, ["json"]
+  end
+
+  scope "/mcp" do
+    pipe_through :mcp
+
+    forward "/", Anubis.Server.Transport.StreamableHTTP.Plug, server: Courier.MCP.Server
+  end
+
+  forward "/.well-known/oauth-protected-resource", Anubis.Server.Transport.WellKnown,
+    server: Courier.MCP.Server
+
+  scope "/", CourierWeb do
+    get "/.well-known/oauth-authorization-server", OAuthServerController, :metadata
+    post "/oauth/register", OAuthServerController, :register
+    post "/oauth/token", OAuthServerController, :token
+  end
+
   scope "/u", CourierWeb do
     pipe_through :unsubscribe
 
@@ -70,9 +89,14 @@ defmodule CourierWeb.Router do
       live "/emails", EmailLive.Index
       live "/emails/:id", EmailLive.Show
       live "/falhas", FailureLive
+      live "/mcp-acesso", McpLive
+      live "/auditoria", AuditLive
       live "/providers", ProviderLive.Index
       live "/providers/:provider", ProviderLive.Show
     end
+
+    get "/oauth/authorize", OAuthConsentController, :show
+    post "/oauth/authorize", OAuthConsentController, :decide
   end
 
   scope "/" do

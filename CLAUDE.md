@@ -39,11 +39,18 @@ Mesmas versões do `../../pjpark/pjpark-app`: Erlang 27.3.1, Elixir 1.18.3-otp-2
 LiveView 1.1, Ecto/Postgres com `binary_id`, Oban (painel em `/oban`, só autenticado), Req,
 Swoosh, Tailwind v4 + daisyUI, **sem gettext**: mensagens em português escritas direto no código.
 
-Contextos em `lib/courier/core/` (`Accounts`, `Apps`, `Emails`, `Webhooks`, `Storage`), conectores
+Contextos em `lib/courier/core/` (`Accounts`, `Apps`, `Emails`, `Webhooks`, `Storage`, `Stats`, `Unsubscribes`, `Audit`), conectores
 em `lib/courier/connectors/` (`Google`, `Postmark`, `Brevo`), workers em `lib/courier/workers/`, API em
 `lib/courier_web/controllers/api/`. Segredos cifrados com `cloak_ecto` (`Courier.Vault`, chave em
 `CLOAK_KEY`). Nos testes, Postmark, Brevo, MinIO e o HTTP do webhook de saída são trocados por dublês em
 `test/support/stubs/`.
+
+## MCP
+
+`/mcp` igual ao do PJ Park (`anubis_mcp`, OAuth próprio em `Courier.OAuth`, consentimento em
+`/oauth/authorize`, token por usuário). Ferramentas em `lib/courier/mcp/tools/`, auxiliares em
+`Courier.MCP` (ação sempre por `Courier.MCP.write/4`: confirmação, motivo e `Courier.Core.Audit`).
+Nenhuma ferramenta mostra ou troca segredo (token `cl_`, chave de provider, segredo de webhook).
 
 ## Autenticação
 

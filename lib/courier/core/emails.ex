@@ -272,6 +272,9 @@ defmodule Courier.Core.Emails do
       {:idempotency_key, key}, query ->
         where(query, [e], e.idempotency_key == ^key)
 
+      {:category, category}, query when category in [:transactional, :marketing] ->
+        where(query, [e], e.category == ^category)
+
       {:metadata, metadata}, query when is_map(metadata) ->
         Enum.reduce(metadata, query, fn {key, value}, query ->
           where(query, [e], fragment("?->>? = ?", e.metadata, ^to_string(key), ^to_string(value)))

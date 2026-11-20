@@ -14,6 +14,9 @@ defmodule Courier.Application do
       {DNSCluster, query: Application.get_env(:courier, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: Courier.PubSub},
       {Oban, Application.fetch_env!(:courier, Oban)},
+      {Courier.MCP.Server,
+       transport: {:streamable_http, start: true},
+       authorization: Courier.MCP.Server.authorization_config()},
       # Start to serve requests, typically the last entry
       CourierWeb.Endpoint
     ]

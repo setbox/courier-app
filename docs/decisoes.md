@@ -130,3 +130,18 @@ Sabatina de 2026-11-10, que fechou o desenho da primeira entrega do envio de e-m
   apagados; ficam só os tokens de sessão. O Google só confirma o e-mail de conta que já existe, então
   o administrador do seed é a porta de entrada. Dev usa o mesmo client OAuth da produção.
 
+## MCP (2026-11-20)
+
+- **MCP em `/mcp`, igual ao do PJ Park**: `anubis_mcp` com transporte HTTP e OAuth próprio (registro
+  dinâmico de cliente, PKCE S256, tela de consentimento em `/oauth/authorize`, token por usuário em
+  `users_tokens` com contexto `mcp`). Todo usuário do Courier pode autorizar; a conexão é revogada em
+  "Acesso pelo MCP", no menu da conta.
+- **Ferramentas de consulta**: `get_dashboard`, `list_failures`, `list_emails`, `get_email`, `list_apps`,
+  `get_app`, `get_environment`, `list_providers`, `list_unsubscribes`, `search_audit`.
+- **Ações com confirmação e motivo** (formulário do cliente MCP, ou `reason` e `confirm: true`):
+  `send_test_email`, `redeliver_webhook`, `create_app`, `create_environment`, `update_recipient_lists`,
+  `remove_unsubscribe`. Cada uma grava em `audit_logs` (ferramenta, ação, motivo, parâmetros), visível
+  em "Auditoria".
+- **Segredo não passa pelo MCP**: gerar token `cl_`, cadastrar chave de provider e segredo de webhook
+  ficam só no painel, porque o que passa pelo MCP fica no histórico da conversa.
+

@@ -85,6 +85,18 @@ defmodule Courier.Core.Unsubscribes do
     )
   end
 
+  def remove(%Environment{id: environment_id}, address) when is_binary(address) do
+    address = address |> String.trim() |> String.downcase()
+
+    case Repo.delete_all(
+           from s in Suppression,
+             where: s.environment_id == ^environment_id and s.address == ^address
+         ) do
+      {1, _} -> {:ok, address}
+      {0, _} -> {:error, :not_found}
+    end
+  end
+
   def count(%Environment{id: environment_id}) do
     Repo.aggregate(from(s in Suppression, where: s.environment_id == ^environment_id), :count)
   end

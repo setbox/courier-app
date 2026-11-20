@@ -66,3 +66,11 @@ Painel em `/oban`, só com login.
 
 90 dias para tudo: o job diário apaga os e-mails mais antigos (com destinatários, eventos e entregas)
 e o corpo no MinIO, em lotes de 500.
+
+## MCP
+
+Endereço do conector: `https://courier.setbox.com.br/mcp` (em dev, `http://localhost:4012/mcp`). No
+claude.ai, em Configurações, Conectores, adicione um conector personalizado com esse endereço: o Claude
+abre a tela de autorização do Courier (entrada pelo Google) e a conexão aparece em "Acesso pelo MCP".
+Metadados OAuth em `/.well-known/oauth-authorization-server` e `/.well-known/oauth-protected-resource`.
+
