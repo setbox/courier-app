@@ -30,7 +30,10 @@ defmodule CourierWeb.EmailLiveTest do
     email: email
   } do
     {:ok, _env, _secret} =
-      Apps.update_webhook(environment, %{"webhook_url" => "https://app.test/hook"})
+      Apps.update_webhook(environment, %{
+        "webhook_url" => "https://app.test/hook",
+        "webhook_events" => ["sent", "failed", "delivery"]
+      })
 
     {:ok, _} = Emails.mark_sent(email, "pm-1")
 
@@ -38,8 +41,14 @@ defmodule CourierWeb.EmailLiveTest do
     assert html =~ "ana@exemplo.com.br"
     assert html =~ "Enviado ao provider"
 
-    html = lv |> element("#show-body") |> render_click()
+    assert has_element?(lv, "#email-body iframe")
+
+    html = lv |> element(~s{button[phx-value-view="text"]}) |> render_click()
     assert html =~ "Olá"
+    refute has_element?(lv, "#email-body iframe")
+
+    lv |> element(~s{button[phx-value-view="html"]}) |> render_click()
+    assert lv |> element(~s{button[phx-value-width="mobile"]}) |> render_click() =~ "w-[375px]"
 
     html = lv |> element("#deliveries button", "Reenviar") |> render_click()
     assert html =~ "Reenvio agendado"

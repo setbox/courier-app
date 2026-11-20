@@ -291,7 +291,7 @@ defmodule Courier.Core.EmailsTest do
           })
         )
 
-      assert event.type == :bounce
+      assert event.type == :not_found
       recipient = Repo.get!(Emails.Recipient, event.recipient_id)
       assert recipient.status == :bounced
       assert recipient.bounce_kind == :not_found

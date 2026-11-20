@@ -306,6 +306,15 @@ defmodule CourierWeb.EnvironmentLive.Show do
             <code :if={@environment.webhook_url} class="break-all">{@environment.webhook_url}</code>
             <span :if={is_nil(@environment.webhook_url)} class="text-neutral">Não configurado</span>
           </dd>
+          <dt :if={@environment.webhook_url} class="font-semibold text-neutral">Eventos</dt>
+          <dd :if={@environment.webhook_url}>
+            <span :if={@environment.webhook_events == []} class="text-warning">
+              Nenhum marcado: nada é enviado.
+            </span>
+            <span :if={@environment.webhook_events != []}>
+              {Enum.map_join(@environment.webhook_events, ", ", &Format.event_type/1)}
+            </span>
+          </dd>
         </dl>
 
         <div class="flex flex-wrap gap-2">

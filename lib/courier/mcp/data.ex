@@ -24,6 +24,7 @@ defmodule Courier.MCP.Data do
       slug: env.slug,
       token_gerado_em: env.client_token_generated_at,
       webhook_url: env.webhook_url,
+      webhook_eventos: env.webhook_events,
       permitidos: env.allowed_recipients,
       bloqueados: env.blocked_recipients,
       descadastros_de_marketing: unsubscribed,

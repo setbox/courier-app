@@ -5,7 +5,7 @@
 | Entidade | Tabela | Módulo | O que é |
 |---|---|---|---|
 | Aplicação | `apps` | `Courier.Core.Apps.App` | Sistema cliente (Jayio, Punhado, PJ Park). Nome e slug únicos |
-| Ambiente | `environments` | `Courier.Core.Apps.Environment` | Instância da aplicação (local, dev, prod...). Guarda o hash do token `cl_`, o webhook para o cliente e as listas `allowed_recipients` (whitelist) e `blocked_recipients` (blacklist) |
+| Ambiente | `environments` | `Courier.Core.Apps.Environment` | Instância da aplicação (local, dev, prod...). Guarda o hash do token `cl_`, o webhook para o cliente (`webhook_url`, `webhook_secret` e `webhook_events`, os tipos repassados) e as listas `allowed_recipients` (whitelist) e `blocked_recipients` (blacklist) |
 | Configuração de canal | `channel_configs` | `Courier.Core.Apps.ChannelConfig` | Uma por (ambiente, canal). Hoje só `email`, com `postmark` (Server Token cifrado, remetente padrão, stream, rastreio e a credencial do webhook do Postmark) `brevo` (API Key cifrada, remetente padrão, `brevo_webhook_id` e a mesma credencial de webhook) ou `sandbox` (só o remetente padrão: o Courier guarda o e-mail e não envia) |
 | E-mail | `emails` | `Courier.Core.Emails.Email` | Um pedido aceito pela API. Metadados no banco; o corpo fica no MinIO em `body_key`. `category` (`transactional` ou `marketing`, obrigatória) e `provider` (gravado ao enviar ou falhar) |
 | Descadastro | `email_suppressions` | `Courier.Core.Unsubscribes.Suppression` | Endereço que cancelou a inscrição de marketing num ambiente (`Courier.Core.Unsubscribes`). Bloqueia só `marketing` |
@@ -72,7 +72,7 @@ não há eventos de entrega, então o destinatário fica em `pending`. Uma devol
    `Courier.Core.Emails.apply_postmark_event/2` acha o e-mail pelo `MessageID` dentro do ambiente,
    atualiza o destinatário e grava o evento. Mensagem desconhecida ou tipo não tratado responde `200`
    e é ignorado, para o Postmark não reenviar em loop.
-4. **Repasse ao cliente**. Todo evento (menos `queued`) de um ambiente com `webhook_url` vira uma
+4. **Repasse ao cliente**. Todo evento de tipo marcado em `webhook_events`, num ambiente com `webhook_url`, vira uma
    `webhook_deliveries` e um job `Courier.Workers.DeliverWebhook` (fila `webhooks`, até 14
    tentativas, backoff de 20s dobrando até 4h, cerca de 24h no total). Só `2xx` conta como entregue.
 5. **Retenção** (`Courier.Workers.PurgeExpired`, diário às 06:00 UTC). Apaga e-mails com mais de 90

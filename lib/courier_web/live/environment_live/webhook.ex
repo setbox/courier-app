@@ -20,10 +20,12 @@ defmodule CourierWeb.EnvironmentLive.Webhook do
     environment = socket.assigns.environment
 
     case Apps.update_webhook(environment, params) do
-      {:ok, _environment, nil} ->
+      {:ok, updated, nil} ->
+        {kind, message} = saved_flash(updated)
+
         {:noreply,
          socket
-         |> put_flash(:info, "Webhook salvo.")
+         |> put_flash(kind, message)
          |> push_navigate(to: ~p"/apps/#{environment.app}/environments/#{environment}")}
 
       {:ok, updated, secret} ->
@@ -32,11 +34,41 @@ defmodule CourierWeb.EnvironmentLive.Webhook do
          |> assign(:environment, %{updated | app: environment.app})
          |> assign(:form, to_form(Apps.change_webhook(updated)))
          |> assign(:revealed_secret, secret)
-         |> put_flash(:info, "Webhook salvo.")}
+         |> then(fn socket ->
+           {kind, message} = saved_flash(updated)
+           put_flash(socket, kind, message)
+         end)}
 
       {:error, changeset} ->
         {:noreply, assign(socket, :form, to_form(changeset))}
     end
+  end
+
+  @event_hints %{
+    sent: "O provider aceitou o e-mail",
+    failed: "O provider recusou ou as tentativas acabaram",
+    delivery: "Chegou à caixa do destinatário",
+    not_found: "O endereço não existe (hard bounce)",
+    bounce: "Outras devoluções: bloqueado, caixa cheia",
+    spam_complaint: "O destinatário marcou como spam",
+    open: "Abertura, quando o rastreio está ligado",
+    click: "Clique em link, quando o rastreio está ligado",
+    subscription_change: "Descadastro ou reinscrição"
+  }
+
+  defp saved_flash(%{webhook_url: url, webhook_events: []}) when is_binary(url),
+    do: {:warning, "Webhook salvo sem nenhum evento marcado: nada será enviado à aplicação."}
+
+  defp saved_flash(_environment), do: {:info, "Webhook salvo."}
+
+  defp event_options do
+    Enum.map(Courier.Core.Webhooks.event_types(), fn type ->
+      {Atom.to_string(type), CourierWeb.Format.event_type(type), Map.fetch!(@event_hints, type)}
+    end)
+  end
+
+  defp selected_events(form) do
+    form.source |> Ecto.Changeset.get_field(:webhook_events) |> Enum.map(&to_string/1)
   end
 
   @impl true
@@ -85,6 +117,29 @@ defmodule CourierWeb.EnvironmentLive.Webhook do
               placeholder="https://app.exemplo.com.br/webhooks/courier"
             />
           </div>
+          <fieldset class="col-span-full mb-2 space-y-2">
+            <legend class="mb-1 text-xs text-neutral">Eventos enviados para a URL</legend>
+            <input type="hidden" name="environment[webhook_events][]" value="" />
+            <div class="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+              <label
+                :for={{type, label, hint} <- event_options()}
+                class="flex cursor-pointer items-start gap-2 text-sm"
+              >
+                <input
+                  type="checkbox"
+                  name="environment[webhook_events][]"
+                  value={type}
+                  checked={type in selected_events(@form)}
+                  class="checkbox checkbox-sm checkbox-primary mt-0.5"
+                />
+                <span>
+                  <span class="font-semibold">{label}</span>
+                  <code class="ml-1 text-xs text-neutral">email.{type}</code>
+                  <span class="block text-xs text-neutral">{hint}</span>
+                </span>
+              </label>
+            </div>
+          </fieldset>
           <div class="col-span-full mt-2 flex flex-wrap items-center justify-end gap-2">
             <.button navigate={~p"/apps/#{@environment.app}/environments/#{@environment}"}>
               Cancelar

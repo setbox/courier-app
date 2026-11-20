@@ -14,6 +14,21 @@ defmodule Courier.Core.Apps.Environment do
     field :client_token_generated_at, :utc_datetime
     field :webhook_url, :string
     field :webhook_secret, Courier.Encrypted.Binary, redact: true
+
+    field :webhook_events, {:array, Ecto.Enum},
+      values: [
+        :sent,
+        :failed,
+        :delivery,
+        :not_found,
+        :bounce,
+        :spam_complaint,
+        :open,
+        :click,
+        :subscription_change
+      ],
+      default: []
+
     field :allowed_recipients, {:array, :string}, default: []
     field :blocked_recipients, {:array, :string}, default: []
 
@@ -36,11 +51,20 @@ defmodule Courier.Core.Apps.Environment do
 
   def webhook_changeset(environment, attrs) do
     environment
-    |> cast(attrs, [:webhook_url])
+    |> cast(drop_blank_events(attrs), [:webhook_url, :webhook_events])
     |> update_change(:webhook_url, &blank_to_nil/1)
     |> validate_length(:webhook_url, max: 2000, message: "é longa demais")
     |> validate_change(:webhook_url, fn :webhook_url, url ->
       if valid_url?(url), do: [], else: [webhook_url: "precisa ser uma URL http ou https"]
+    end)
+  end
+
+  defp drop_blank_events(attrs) do
+    Enum.reduce(["webhook_events", :webhook_events], attrs, fn key, acc ->
+      case Map.get(acc, key) do
+        list when is_list(list) -> Map.put(acc, key, Enum.reject(list, &(&1 in [nil, ""])))
+        _ -> acc
+      end
     end)
   end
 

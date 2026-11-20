@@ -11,6 +11,7 @@ defmodule Courier.Core.Webhooks do
     :sent,
     :failed,
     :delivery,
+    :not_found,
     :bounce,
     :spam_complaint,
     :open,
@@ -18,15 +19,17 @@ defmodule Courier.Core.Webhooks do
     :subscription_change
   ]
 
-  def enqueue(%Email{} = email, %Event{type: type} = event) when type in @forwarded do
-    case Repo.get(Environment, email.environment_id) do
-      %Environment{webhook_url: url} when is_binary(url) ->
-        delivery = Repo.insert!(%Delivery{email_event_id: event.id, url: url})
-        Oban.insert!(DeliverWebhook.new(%{delivery_id: delivery.id}))
-        {:ok, delivery}
+  def event_types, do: @forwarded
 
-      _ ->
-        :skip
+  def enqueue(%Email{} = email, %Event{type: type} = event) when type in @forwarded do
+    with %Environment{webhook_url: url, webhook_events: events} when is_binary(url) <-
+           Repo.get(Environment, email.environment_id),
+         true <- type in events do
+      delivery = Repo.insert!(%Delivery{email_event_id: event.id, url: url})
+      Oban.insert!(DeliverWebhook.new(%{delivery_id: delivery.id}))
+      {:ok, delivery}
+    else
+      _ -> :skip
     end
   end
 

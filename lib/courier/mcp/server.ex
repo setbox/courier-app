@@ -25,6 +25,7 @@ defmodule Courier.MCP.Server do
   component(Tools.RemoveUnsubscribe)
   component(Tools.ConfigureEmail)
   component(Tools.GenerateClientToken)
+  component(Tools.ConfigureWebhook)
 
   @impl true
   def init(_client_info, frame), do: {:ok, frame}

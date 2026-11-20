@@ -146,3 +146,15 @@ Sabatina de 2026-11-10, que fechou o desenho da primeira entrega do envio de e-m
   histórico da conversa. Exceção decidida em 2026-11-20: `generate_client_token` devolve o token `cl_`
   uma vez, para configurar uma aplicação sem abrir o painel; a auditoria guarda o pedido, nunca o token.
 
+## Webhook por tipo de evento (2026-11-20)
+
+- **Um webhook por ambiente, com os tipos escolhidos** (`environments.webhook_events`). Webhook novo nasce
+  sem nenhum tipo marcado; os ambientes que já tinham URL ficaram com todos marcados na migration. Evento
+  de tipo não marcado fica na linha do tempo do e-mail, mas não gera entrega. A tela avisa quando há URL
+  sem nenhum tipo.
+- **`email.not_found` é tipo próprio**: a devolução por endereço inexistente (`bounce_kind = not_found`)
+  vira evento `not_found` na linha do tempo, na API de eventos e no webhook; `email.bounce` fica para as
+  outras devoluções.
+- **`configure_webhook` no MCP** cadastra URL e tipos e devolve o segredo `whsec_` uma vez, quando o
+  ambiente ganha a primeira URL, no mesmo espírito de `generate_client_token`.
+

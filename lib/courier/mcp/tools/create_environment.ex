@@ -1,6 +1,6 @@
 defmodule Courier.MCP.Tools.CreateEnvironment do
   @moduledoc """
-  Cria um ambiente numa aplicação (local, dev, prod...). O token de envio e o provider ficam para o painel, porque são segredos. Pede confirmação à pessoa, com o motivo. Sem formulário, pergunte o motivo e se ela confirma, e chame com `reason` e `confirm: true`.
+  Cria um ambiente numa aplicação (local, dev, prod...). Depois, configure o e-mail com configure_email (Sandbox do Courier) ou pelo painel (Postmark e Brevo), e gere o token com generate_client_token. Pede confirmação à pessoa, com o motivo. Sem formulário, pergunte o motivo e se ela confirma, e chame com `reason` e `confirm: true`.
   """
 
   use Anubis.Server.Component, type: :tool, annotations: %{"destructiveHint" => false}

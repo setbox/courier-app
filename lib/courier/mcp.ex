@@ -168,6 +168,8 @@ defmodule Courier.MCP do
   def error_text(text) when is_binary(text), do: text
   def error_text(reason), do: "Não foi possível concluir: #{inspect(reason)}"
 
+  def present(map), do: map |> Enum.reject(fn {_key, value} -> is_nil(value) end) |> Map.new()
+
   def ok({:ok, value}, fun), do: {:ok, fun.(value)}
   def ok({:error, reason}, _fun), do: {:error, reason}
 end

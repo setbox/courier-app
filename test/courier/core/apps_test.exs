@@ -312,4 +312,28 @@ defmodule Courier.Core.AppsTest do
       assert errors_on(changeset).webhook_url
     end
   end
+
+  describe "webhook events" do
+    alias Courier.Core.{Emails, Webhooks}
+
+    test "only the chosen event types become deliveries" do
+      {environment, _token} = Courier.MessagingFixtures.configured_environment_fixture()
+
+      {:ok, environment, _secret} =
+        Apps.update_webhook(environment, %{
+          "webhook_url" => "https://app.test/hook",
+          "webhook_events" => ["", "failed"]
+        })
+
+      assert environment.webhook_events == [:failed]
+
+      email = Courier.MessagingFixtures.email_fixture(environment)
+      {:ok, _} = Emails.mark_sent(email, "pm-x", :postmark)
+      assert Webhooks.list_deliveries(email) == []
+
+      other = Courier.MessagingFixtures.email_fixture(environment)
+      {:ok, _} = Emails.mark_failed(other, 422, "recusado", :postmark)
+      assert [_] = Webhooks.list_deliveries(other)
+    end
+  end
 end

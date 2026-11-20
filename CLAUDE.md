@@ -51,7 +51,8 @@ em `lib/courier/connectors/` (`Google`, `Postmark`, `Brevo`), workers em `lib/co
 `/oauth/authorize`, token por usuário). Ferramentas em `lib/courier/mcp/tools/`, auxiliares em
 `Courier.MCP` (ação sempre por `Courier.MCP.write/4`: confirmação, motivo e `Courier.Core.Audit`).
 Chave de provider e segredo de webhook não passam pelo MCP: `configure_email` só aceita o Sandbox do
-Courier. A exceção é `generate_client_token`, que devolve o token `cl_` uma vez (decidido em 2026-11-20).
+Courier. As exceções são `generate_client_token` e `configure_webhook`, que devolvem uma vez o token `cl_` e o
+segredo `whsec_` (decidido em 2026-11-20).
 
 ## Autenticação
 

@@ -88,7 +88,10 @@ defmodule Courier.Workers.SendEmailTest do
 
   test "enqueues the client webhook when configured", %{environment: environment, email: email} do
     {:ok, _env, _secret} =
-      Apps.update_webhook(environment, %{"webhook_url" => "https://app.test/hook"})
+      Apps.update_webhook(environment, %{
+        "webhook_url" => "https://app.test/hook",
+        "webhook_events" => ["sent", "failed", "delivery"]
+      })
 
     assert :ok = perform_job(SendEmail, %{email_id: email.id})
     assert [%{args: %{"delivery_id" => _}}] = all_enqueued(worker: DeliverWebhook)

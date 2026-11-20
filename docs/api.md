@@ -162,9 +162,11 @@ Courier-Signature: t=1762782734,v1=5f1c...
 }
 ```
 
-Tipos: `email.sent`, `email.failed`, `email.delivery`, `email.bounce`, `email.spam_complaint`,
-`email.open`, `email.click`, `email.subscription_change`. Num ambiente com o Sandbox do Courier só chegam
-`email.sent` e `email.failed`, gerados pelo próprio Courier.
+Tipos: `email.sent`, `email.failed`, `email.delivery`, `email.not_found` (endereço inexistente, hard
+bounce), `email.bounce` (as outras devoluções), `email.spam_complaint`, `email.open`, `email.click`,
+`email.subscription_change`. **Só chegam os tipos marcados no ambiente**: um webhook novo nasce sem
+nenhum, e a escolha é feita na tela do webhook ou pela ferramenta `configure_webhook` do MCP. Num
+ambiente com o Sandbox do Courier só existem `email.sent` e `email.failed`, gerados pelo próprio Courier.
 
 **Validar a assinatura**: `v1` é o HMAC-SHA256, em hexadecimal minúsculo, de
 `"<t>.<corpo bruto>"` com o segredo `whsec_...` do ambiente. Recuse se não conferir ou se `t` estiver

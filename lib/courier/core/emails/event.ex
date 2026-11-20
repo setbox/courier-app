@@ -8,6 +8,7 @@ defmodule Courier.Core.Emails.Event do
     :sent,
     :failed,
     :delivery,
+    :not_found,
     :bounce,
     :spam_complaint,
     :open,

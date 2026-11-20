@@ -423,14 +423,17 @@ defmodule Courier.Core.Emails do
         recipient = find_recipient(email, recipient_address(event_type, payload))
         occurred_at = occurred_at(event_type, payload)
 
-        update_recipient(
-          recipient,
-          event_type,
-          occurred_at,
-          {bounce_detail(payload), postmark_bounce_kind(payload["Type"])}
-        )
+        kind = postmark_bounce_kind(payload["Type"])
+        update_recipient(recipient, event_type, occurred_at, {bounce_detail(payload), kind})
 
-        event = record_event!(email, event_type, occurred_at, recipient, event_data(payload))
+        event =
+          record_event!(
+            email,
+            recorded_type(event_type, kind),
+            occurred_at,
+            recipient,
+            event_data(payload)
+          )
 
         {:ok, event}
       end)
@@ -454,14 +457,11 @@ defmodule Courier.Core.Emails do
         recipient = find_recipient(email, payload["email"])
         occurred_at = brevo_occurred_at(payload)
 
-        update_recipient(
-          recipient,
-          event_type,
-          occurred_at,
-          {brevo_bounce_detail(payload), brevo_bounce_kind(type)}
-        )
+        kind = brevo_bounce_kind(type)
+        update_recipient(recipient, event_type, occurred_at, {brevo_bounce_detail(payload), kind})
 
-        event = record_event!(email, event_type, occurred_at, recipient, payload)
+        event =
+          record_event!(email, recorded_type(event_type, kind), occurred_at, recipient, payload)
 
         {:ok, event}
       end)
@@ -551,6 +551,9 @@ defmodule Courier.Core.Emails do
       _ -> DateTime.utc_now(:second)
     end
   end
+
+  defp recorded_type(:bounce, :not_found), do: :not_found
+  defp recorded_type(type, _kind), do: type
 
   defp postmark_bounce_kind(type) when type in ["HardBounce", "BadEmailAddress"], do: :not_found
   defp postmark_bounce_kind(_type), do: :other

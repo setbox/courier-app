@@ -13,7 +13,10 @@ defmodule Courier.Workers.DeliverWebhookTest do
     {environment, _token} = configured_environment_fixture()
 
     {:ok, _env, secret} =
-      Apps.update_webhook(environment, %{"webhook_url" => "https://app.test/hook"})
+      Apps.update_webhook(environment, %{
+        "webhook_url" => "https://app.test/hook",
+        "webhook_events" => ["sent", "failed", "delivery"]
+      })
 
     email = email_fixture(environment, %{"metadata" => %{"order_id" => "7"}})
     {:ok, _} = Emails.mark_sent(email, "pm-1")

@@ -149,4 +149,30 @@ defmodule Courier.MCP.ToolsTest do
     refute Enum.any?(logs, &(inspect(&1.metadata) =~ token))
     assert user.id
   end
+
+  test "configures the webhook with chosen events and returns the secret once", %{
+    frame: frame,
+    environment: environment
+  } do
+    confirm = &Map.merge(&1, %{reason: "receber eventos", confirm: true})
+
+    params = %{
+      environment_id: environment.id,
+      url: "https://app.test/hook",
+      events: ["failed", "not_found"]
+    }
+
+    assert {:ok, %{"segredo" => "whsec_" <> _, "eventos" => ["failed", "not_found"]}} =
+             call(Tools.ConfigureWebhook, confirm.(params), frame)
+
+    assert {:ok, again} =
+             call(Tools.ConfigureWebhook, confirm.(%{params | events: ["sent"]}), frame)
+
+    refute Map.has_key?(again, "segredo")
+
+    assert {:error, message} =
+             call(Tools.ConfigureWebhook, confirm.(%{params | events: ["opened"]}), frame)
+
+    assert message =~ "Evento inválido"
+  end
 end
