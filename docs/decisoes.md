@@ -102,6 +102,11 @@ Sabatina de 2026-11-10, que fechou o desenho da primeira entrega do envio de e-m
   e-mail. A página `/u/<token>` pede confirmação (um robô que abre links não descadastra); o POST,
   inclusive o de um clique sem CSRF, grava em `email_suppressions` e gera `email.subscription_change`.
   Marketing para quem saiu é recusado com `recipient_unsubscribed`; transacional segue.
+- **Transacional pelo Brevo leva o `List-Unsubscribe` do Courier** (2026-11-20). O Brevo acrescenta o
+  próprio cabeçalho em todo transacional que chega sem um, e o clique nele bloqueia o endereço para
+  transacionais da conta inteira (magic link, recibo). O Brevo respeita o cabeçalho enviado em
+  `headers`, então o Courier manda o seu, para o primeiro `to`, e o clique só descadastra do
+  marketing. O corpo não muda. Postmark não acrescenta cabeçalho, e lá o transacional segue sem.
 
 ## Painel e falhas (2026-11-20)
 

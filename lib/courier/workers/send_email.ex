@@ -25,7 +25,7 @@ defmodule Courier.Workers.SendEmail do
 
     with true <- ChannelConfig.ready?(config) || {:permanent, nil, "provider not configured"},
          {:ok, body} <- fetch_body(email),
-         {body, unsubscribe_url} = with_unsubscribe(email, body),
+         {body, unsubscribe_url} = with_unsubscribe(email, body, config),
          {:ok, %{message_id: message_id}} <-
            send_to_provider(config, email, body, unsubscribe_url) do
       {:ok, _} = Emails.mark_sent(email, message_id, config.provider)
@@ -59,9 +59,8 @@ defmodule Courier.Workers.SendEmail do
     {:error, message}
   end
 
-  defp with_unsubscribe(%Email{category: :marketing} = email, body) do
-    %{address: address} = Enum.find(email.recipients, &(&1.kind == :to))
-    url = Unsubscribes.url(email, address)
+  defp with_unsubscribe(%Email{category: :marketing} = email, body, _config) do
+    url = unsubscribe_url(email)
 
     body =
       body
@@ -71,7 +70,15 @@ defmodule Courier.Workers.SendEmail do
     {body, url}
   end
 
-  defp with_unsubscribe(_email, body), do: {body, nil}
+  defp with_unsubscribe(email, body, %ChannelConfig{provider: :brevo}),
+    do: {body, unsubscribe_url(email)}
+
+  defp with_unsubscribe(_email, body, _config), do: {body, nil}
+
+  defp unsubscribe_url(email) do
+    %{address: address} = Enum.find(email.recipients, &(&1.kind == :to))
+    Unsubscribes.url(email, address)
+  end
 
   defp send_to_provider(%ChannelConfig{provider: :sandbox}, _email, _body, _unsubscribe_url),
     do: {:ok, %{message_id: "sandbox-#{Ecto.UUID.generate()}"}}

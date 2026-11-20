@@ -146,7 +146,14 @@ defmodule Courier.Workers.SendEmailTest do
       assert opts[:url] == "https://brevo.test/smtp/email"
       assert {"api-key", "xkeysib-1234"} in opts[:headers]
 
-      assert opts[:json] == %{
+      assert %{"List-Unsubscribe" => "<" <> link, "List-Unsubscribe-Post" => one_click} =
+               opts[:json]["headers"]
+
+      assert one_click == "List-Unsubscribe=One-Click"
+      token = link |> String.trim_trailing(">") |> String.split("/u/") |> List.last()
+      assert {:ok, %{address: "ana@exemplo.com.br"}} = Courier.Core.Unsubscribes.verify(token)
+
+      assert Map.delete(opts[:json], "headers") == %{
                "sender" => %{"email" => "naoresponda@exemplo.com.br", "name" => "Exemplo"},
                "to" => [%{"email" => "ana@exemplo.com.br"}],
                "cc" => [%{"email" => "bia@exemplo.com.br"}],

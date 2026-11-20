@@ -89,6 +89,12 @@ visível na tela de E-mails, e não chega ao destinatário. A resposta e o fluxo
 Quem cancela a inscrição deixa de receber marketing daquele ambiente (`recipient_unsubscribed`), e a
 aplicação recebe o evento `email.subscription_change`. Transacional continua chegando.
 
+**Transacional pelo Brevo** também leva os dois cabeçalhos do Courier (para o primeiro `to`), sem link
+no corpo: sem eles, o Brevo põe o próprio `List-Unsubscribe`, e um clique ali bloqueia o endereço para
+todo transacional da conta. Com o do Courier, o clique só tira a pessoa do marketing e gera
+`email.subscription_change` (com `email.category` `transactional`). Pelo Postmark, transacional vai sem
+esses cabeçalhos.
+
 ```http
 HTTP/1.1 422
 
