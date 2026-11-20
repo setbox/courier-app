@@ -4,58 +4,24 @@ defmodule CourierWeb.UserLive.LoginTest do
   import Phoenix.LiveViewTest
   import Courier.Core.AccountsFixtures
 
-  describe "login page" do
-    test "renders the page with the Google button", %{conn: conn} do
-      {:ok, _lv, html} = live(conn, ~p"/login")
+  test "offers only the Google login", %{conn: conn} do
+    {:ok, lv, html} = live(conn, ~p"/login")
 
-      assert html =~ "Entrar"
-      assert html =~ "Esqueci minha senha"
-      assert html =~ "Continuar com o Google"
-      refute html =~ "Criar conta"
-    end
-
-    test "has no public registration", %{conn: conn} do
-      assert get(conn, "/register").status == 404
-    end
+    assert html =~ "Entrar"
+    assert html =~ "Continuar com o Google"
+    refute has_element?(lv, "form")
+    refute html =~ "Senha"
   end
 
-  describe "password login" do
-    test "logs the user in", %{conn: conn} do
-      user = user_fixture()
-      {:ok, lv, _html} = live(conn, ~p"/login")
-
-      form =
-        form(lv, "#login_form",
-          user: %{email: user.email, password: valid_user_password(), remember_me: true}
-        )
-
-      conn = submit_form(form, conn)
-
-      assert redirected_to(conn) == ~p"/"
-    end
-
-    test "redirects back to login with invalid credentials", %{conn: conn} do
-      {:ok, lv, _html} = live(conn, ~p"/login")
-
-      form = form(lv, "#login_form", user: %{email: "test@email.com", password: "123456"})
-      conn = submit_form(form, conn)
-
-      assert Phoenix.Flash.get(conn.assigns.flash, :error) == "E-mail ou senha inválidos."
-      assert redirected_to(conn) == ~p"/login"
-    end
+  test "has no password, registration, reset or confirmation routes", %{conn: conn} do
+    assert get(conn, "/register").status == 404
+    assert get(conn, "/reset-password").status == 404
+    assert get(conn, "/confirm").status == 404
+    assert post(conn, "/login", %{"user" => %{"email" => "a@b.c"}}).status == 404
   end
 
-  describe "re-authentication" do
-    setup %{conn: conn} do
-      user = user_fixture()
-      %{user: user, conn: log_in_user(conn, user)}
-    end
-
-    test "shows the email locked", %{conn: conn, user: user} do
-      {:ok, _lv, html} = live(conn, ~p"/login")
-
-      assert html =~ "Confirme seu acesso"
-      assert html =~ user.email
-    end
+  test "sends a signed-in user home", %{conn: conn} do
+    conn = log_in_user(conn, user_fixture())
+    assert {:error, {:redirect, %{to: "/"}}} = live(conn, ~p"/login")
   end
 end

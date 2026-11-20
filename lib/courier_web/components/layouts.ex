@@ -91,7 +91,6 @@ defmodule CourierWeb.Layouts do
                 tabindex="0"
                 class="dropdown-content menu z-40 mt-2 w-60 rounded-box border border-base-300 bg-base-100 p-2 shadow-lg"
               >
-                <li><.link navigate={~p"/settings"}>Conta e senha</.link></li>
                 <li><.link href={~p"/logout"} method="delete">Sair</.link></li>
               </ul>
             </div>

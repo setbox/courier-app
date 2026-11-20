@@ -15,7 +15,7 @@ defmodule CourierWeb.OAuthController do
       |> put_session(@state_key, state)
       |> redirect(external: Google.authorize_url(state, callback_url()))
     else
-      failed(conn, "A entrada com o Google está indisponível agora. Use e-mail e senha.")
+      failed(conn, "A entrada com o Google está indisponível agora.")
     end
   end
 

@@ -11,10 +11,10 @@
 | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` | sim | Credencial do MinIO |
 | `S3_HOST` | sim | Host do MinIO na rede interna |
 | `S3_PORT`, `S3_SCHEME`, `S3_BUCKET` | não | Padrões `9000`, `http://`, `courier` |
-| `POSTMARK_SERVER_API_TOKEN` | sim | E-mails do próprio Courier (confirmação, senha). Não é usado no envio das aplicações, que usa o token de cada ambiente |
+| `POSTMARK_SERVER_API_TOKEN` | sim | Mailer do próprio Courier (hoje sem e-mail de sistema: a entrada é só pelo Google). Não é usado no envio das aplicações, que usa o token de cada ambiente |
 | `MAIL_FROM`, `MAIL_FROM_NAME` | não | Remetente desses e-mails |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | não | Entrada pelo Google |
-| `ADMIN_EMAIL`, `ADMIN_PASSWORD` | não | Seed do administrador |
+| `ADMIN_EMAIL` | não | Seed do administrador (entra pelo Google) |
 
 Sem `CLOAK_KEY`, `S3_HOST` ou as credenciais do MinIO, a release não sobe.
 

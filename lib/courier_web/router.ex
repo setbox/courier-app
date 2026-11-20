@@ -58,11 +58,7 @@ defmodule CourierWeb.Router do
       live "/emails/:id", EmailLive.Show
       live "/providers", ProviderLive.Index
       live "/providers/:provider", ProviderLive.Show
-      live "/settings", UserLive.Settings, :edit
-      live "/settings/confirm-email/:token", UserLive.Settings, :confirm_email
     end
-
-    post "/settings/password", UserSessionController, :update_password
   end
 
   scope "/" do
@@ -76,24 +72,13 @@ defmodule CourierWeb.Router do
 
     live_session :redirect_if_user_is_authenticated,
       on_mount: [{CourierWeb.UserAuth, :mount_current_scope}] do
-      live "/reset-password", UserLive.ForgotPassword, :new
-      live "/reset-password/:token", UserLive.ResetPassword, :edit
-      live "/confirm", UserLive.Confirmation, :new
-      live "/confirm/:token", UserLive.Confirmation, :edit
+      live "/login", UserLive.Login, :new
     end
-
-    post "/confirm", UserSessionController, :confirm
   end
 
   scope "/", CourierWeb do
     pipe_through [:browser]
 
-    live_session :current_user,
-      on_mount: [{CourierWeb.UserAuth, :mount_current_scope}] do
-      live "/login", UserLive.Login, :new
-    end
-
-    post "/login", UserSessionController, :create
     delete "/logout", UserSessionController, :delete
   end
 

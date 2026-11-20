@@ -101,3 +101,11 @@ Sabatina de 2026-11-10, que fechou o desenho da primeira entrega do envio de e-m
   `Idempotency-Key`) e linha do tempo de eventos.
 - **Retenção de 90 dias** para tudo. Metadados no Postgres; **corpo no MinIO**, gravado **antes** do
   202. MinIO fora do ar faz a API responder `503`, e o cliente retenta com a mesma `Idempotency-Key`.
+
+## Acesso (2026-11-20)
+
+- **Só conta Google.** Saíram o login por e-mail e senha, a confirmação por e-mail, a redefinição de
+  senha e a tela de conta. A coluna `users.hashed_password` foi removida e os tokens de e-mail
+  apagados; ficam só os tokens de sessão. O Google só confirma o e-mail de conta que já existe, então
+  o administrador do seed é a porta de entrada. Dev usa o mesmo client OAuth da produção.
+

@@ -5,9 +5,9 @@
 `make dev` sobe o app com IEx na **porta 4012** (porta fixa por plataforma Setbox). `make setup`
 instala dependências, cria o banco, migra e roda o seed. `make` sozinho lista os alvos.
 
-Seed: cria o administrador `jackson@setbox.com.br` (ou `ADMIN_EMAIL`), já confirmado. Senha de
-`ADMIN_PASSWORD`; em dev, sem ela, `root@Setbox`; fora de dev, gerada e impressa (variável vazia vale
-como ausente). Conta que já tem senha não é tocada. Na release: `bin/seed` (`Courier.Release.seed/0`).
+Seed: cria o administrador `jackson@setbox.com.br` (ou `ADMIN_EMAIL`; vazia vale como ausente), já
+confirmado e sem senha: entra pelo Google. Conta que já existe não é tocada. Na release: `bin/seed`
+(`Courier.Release.seed/0`).
 
 E-mail: Postmark em produção (`POSTMARK_SERVER_API_TOKEN`, obrigatório: sem ele a release não sobe),
 remetente de `MAIL_FROM_NAME`/`MAIL_FROM` (padrão `Courier <courier@setbox.com.br>`). Em dev,
@@ -47,19 +47,18 @@ em `lib/courier/connectors/` (`Google`, `Postmark`, `Brevo`), workers em `lib/co
 
 ## Autenticação
 
-`phx.gen.auth` adaptado ao desenho do PJ Park:
+**Só conta Google** (decidido em 2026-11-20): não há senha, cadastro, redefinição, confirmação por
+e-mail nem tela de conta.
 
-- **Sem cadastro público**: só o administrador cria ou convida usuários (não há `/register`).
-- **E-mail e senha** (8 a 72 caracteres). Sem confirmar o e-mail, não entra. Confirmação vale 7
-  dias; redefinição, 1 dia; sessão, 14 dias.
-- E-mail inexistente e senha errada respondem igual.
 - **Conta Google** (`Courier.Connectors.Google`, sobre o `Req`), em `/auth/google`. `state` na
   sessão, comparado com `Plug.Crypto.secure_compare/2`. Só e-mail verificado entra, e só de conta que
-  já existe: o Google não cria conta. Conta não confirmada passa a confirmada e perde a senha e os
-  tokens ao entrar pelo Google. Sem
-  `GOOGLE_CLIENT_ID` e `GOOGLE_CLIENT_SECRET`, o botão some. Callback em dev:
-  `http://localhost:4012/auth/google/callback`.
-- Telas públicas (`/login`, `/reset-password`, `/confirm`) usam
+  já existe: o Google não cria conta (o administrador do seed é a primeira). Conta não confirmada
+  passa a confirmada ao entrar.
+- Sessão de 14 dias, em cookie assinado, gravada a cada entrada.
+- `GOOGLE_CLIENT_ID` e `GOOGLE_CLIENT_SECRET` também em dev (`.envrc`, o mesmo client da produção).
+  Sem eles, `/login` mostra o aviso e ninguém entra. Callback em dev:
+  `http://localhost:4012/auth/google/callback`, cadastrada no client do Google.
+- A tela pública (`/login`) usa
   `CourierWeb.AuthLayout`: formulário em 30% à esquerda, mascote em 70% à direita (`webp` com `jpg`
   de reserva; abaixo de `lg` o painel não é renderizado). O `flash_group` fica fora da grade.
 

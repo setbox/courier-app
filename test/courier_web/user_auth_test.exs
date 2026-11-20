@@ -20,7 +20,7 @@ defmodule CourierWeb.UserAuthTest do
     %{user: %{user_fixture() | authenticated_at: DateTime.utc_now(:second)}, conn: conn}
   end
 
-  describe "log_in_user/3" do
+  describe "log_in_user/2" do
     test "stores the user token in the session", %{conn: conn, user: user} do
       conn = UserAuth.log_in_user(conn, user)
       assert token = get_session(conn, :user_token)
@@ -75,10 +75,9 @@ defmodule CourierWeb.UserAuthTest do
       refute get_session(conn, :user_return_to)
     end
 
-    test "writes a cookie if remember_me is configured", %{conn: conn, user: user} do
-      conn = conn |> fetch_cookies() |> UserAuth.log_in_user(user, %{"remember_me" => "true"})
+    test "always writes the 14-day session cookie", %{conn: conn, user: user} do
+      conn = conn |> fetch_cookies() |> UserAuth.log_in_user(user)
       assert get_session(conn, :user_token) == conn.cookies[@remember_me_cookie]
-      assert get_session(conn, :user_remember_me) == true
 
       assert %{value: signed_token, max_age: max_age} = conn.resp_cookies[@remember_me_cookie]
       assert signed_token != get_session(conn, :user_token)
@@ -92,25 +91,6 @@ defmodule CourierWeb.UserAuthTest do
         |> UserAuth.log_in_user(user)
 
       assert redirected_to(conn) == ~p"/"
-    end
-
-    test "writes a cookie if remember_me was set in previous session", %{conn: conn, user: user} do
-      conn = conn |> fetch_cookies() |> UserAuth.log_in_user(user, %{"remember_me" => "true"})
-      assert get_session(conn, :user_token) == conn.cookies[@remember_me_cookie]
-      assert get_session(conn, :user_remember_me) == true
-
-      conn =
-        conn
-        |> recycle()
-        |> Map.replace!(:secret_key_base, CourierWeb.Endpoint.config(:secret_key_base))
-        |> fetch_cookies()
-        |> init_test_session(%{user_remember_me: true})
-
-      conn = conn |> UserAuth.log_in_user(user, %{})
-      assert %{value: signed_token, max_age: max_age} = conn.resp_cookies[@remember_me_cookie]
-      assert signed_token != get_session(conn, :user_token)
-      assert max_age == @remember_me_cookie_max_age
-      assert get_session(conn, :user_remember_me) == true
     end
   end
 
@@ -165,7 +145,7 @@ defmodule CourierWeb.UserAuthTest do
 
     test "authenticates user from cookies", %{conn: conn, user: user} do
       logged_in_conn =
-        conn |> fetch_cookies() |> UserAuth.log_in_user(user, %{"remember_me" => "true"})
+        conn |> fetch_cookies() |> UserAuth.log_in_user(user)
 
       user_token = logged_in_conn.cookies[@remember_me_cookie]
       %{value: signed_token} = logged_in_conn.resp_cookies[@remember_me_cookie]
@@ -178,7 +158,6 @@ defmodule CourierWeb.UserAuthTest do
       assert conn.assigns.current_scope.user.id == user.id
       assert conn.assigns.current_scope.user.authenticated_at == user.authenticated_at
       assert get_session(conn, :user_token) == user_token
-      assert get_session(conn, :user_remember_me)
 
       assert get_session(conn, :live_socket_id) ==
                "users_sessions:#{Base.url_encode64(user_token)}"
@@ -193,7 +172,7 @@ defmodule CourierWeb.UserAuthTest do
 
     test "reissues a new token after a few days and refreshes cookie", %{conn: conn, user: user} do
       logged_in_conn =
-        conn |> fetch_cookies() |> UserAuth.log_in_user(user, %{"remember_me" => "true"})
+        conn |> fetch_cookies() |> UserAuth.log_in_user(user)
 
       token = logged_in_conn.cookies[@remember_me_cookie]
       %{value: signed_token} = logged_in_conn.resp_cookies[@remember_me_cookie]
@@ -204,7 +183,6 @@ defmodule CourierWeb.UserAuthTest do
       conn =
         conn
         |> put_session(:user_token, token)
-        |> put_session(:user_remember_me, true)
         |> put_req_cookie(@remember_me_cookie, signed_token)
         |> UserAuth.fetch_current_scope_for_user([])
 
@@ -290,38 +268,6 @@ defmodule CourierWeb.UserAuthTest do
     end
   end
 
-  describe "on_mount :require_sudo_mode" do
-    test "allows users that have authenticated in the last 10 minutes", %{conn: conn, user: user} do
-      user_token = Accounts.generate_user_session_token(user)
-      session = conn |> put_session(:user_token, user_token) |> get_session()
-
-      socket = %LiveView.Socket{
-        endpoint: CourierWeb.Endpoint,
-        assigns: %{__changed__: %{}, flash: %{}}
-      }
-
-      assert {:cont, _updated_socket} =
-               UserAuth.on_mount(:require_sudo_mode, %{}, session, socket)
-    end
-
-    test "redirects when authentication is too old", %{conn: conn, user: user} do
-      eleven_minutes_ago = DateTime.utc_now(:second) |> DateTime.add(-11, :minute)
-      user = %{user | authenticated_at: eleven_minutes_ago}
-      user_token = Accounts.generate_user_session_token(user)
-      {user, token_inserted_at} = Accounts.get_user_by_session_token(user_token)
-      assert DateTime.compare(token_inserted_at, user.authenticated_at) == :gt
-      session = conn |> put_session(:user_token, user_token) |> get_session()
-
-      socket = %LiveView.Socket{
-        endpoint: CourierWeb.Endpoint,
-        assigns: %{__changed__: %{}, flash: %{}}
-      }
-
-      assert {:halt, _updated_socket} =
-               UserAuth.on_mount(:require_sudo_mode, %{}, session, socket)
-    end
-  end
-
   describe "require_authenticated_user/2" do
     setup %{conn: conn} do
       %{conn: UserAuth.fetch_current_scope_for_user(conn, [])}
@@ -369,28 +315,6 @@ defmodule CourierWeb.UserAuthTest do
 
       refute conn.halted
       refute conn.status
-    end
-  end
-
-  describe "disconnect_sessions/1" do
-    test "broadcasts disconnect messages for each token" do
-      tokens = [%{token: "token1"}, %{token: "token2"}]
-
-      for %{token: token} <- tokens do
-        CourierWeb.Endpoint.subscribe("users_sessions:#{Base.url_encode64(token)}")
-      end
-
-      UserAuth.disconnect_sessions(tokens)
-
-      assert_receive %Phoenix.Socket.Broadcast{
-        event: "disconnect",
-        topic: "users_sessions:dG9rZW4x"
-      }
-
-      assert_receive %Phoenix.Socket.Broadcast{
-        event: "disconnect",
-        topic: "users_sessions:dG9rZW4y"
-      }
     end
   end
 end

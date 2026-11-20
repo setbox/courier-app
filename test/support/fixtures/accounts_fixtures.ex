@@ -2,43 +2,20 @@ defmodule Courier.Core.AccountsFixtures do
   import Ecto.Query
 
   alias Courier.Core.Accounts
-  alias Courier.Core.Accounts.Scope
+  alias Courier.Core.Accounts.{Scope, User}
 
   def unique_user_email, do: "user#{System.unique_integer()}@example.com"
-  def valid_user_password, do: "hello world!"
-
-  def valid_user_attributes(attrs \\ %{}) do
-    Enum.into(attrs, %{
-      email: unique_user_email(),
-      password: valid_user_password()
-    })
-  end
 
   def unconfirmed_user_fixture(attrs \\ %{}) do
-    {:ok, user} =
-      attrs
-      |> valid_user_attributes()
-      |> Accounts.register_user()
-
-    user
+    %User{}
+    |> User.email_changeset(Enum.into(attrs, %{email: unique_user_email()}))
+    |> Courier.Repo.insert!()
   end
 
   def user_fixture(attrs \\ %{}) do
-    user = unconfirmed_user_fixture(attrs)
-
-    token =
-      extract_user_token(fn url ->
-        Accounts.deliver_user_confirmation_instructions(user, url)
-      end)
-
-    {:ok, user} = Accounts.confirm_user(token)
-    user
-  end
-
-  def passwordless_user_fixture(attrs \\ %{}) do
     attrs
-    |> user_fixture()
-    |> Ecto.Changeset.change(hashed_password: nil)
+    |> unconfirmed_user_fixture()
+    |> User.confirm_changeset()
     |> Courier.Repo.update!()
   end
 
@@ -49,12 +26,6 @@ defmodule Courier.Core.AccountsFixtures do
 
   def user_scope_fixture(user) do
     Scope.for_user(user)
-  end
-
-  def extract_user_token(fun) do
-    {:ok, captured_email} = fun.(&"[TOKEN]#{&1}[TOKEN]")
-    [_, token | _] = String.split(captured_email.text_body, "[TOKEN]")
-    token
   end
 
   def override_token_authenticated_at(token, authenticated_at) when is_binary(token) do

@@ -42,47 +42,20 @@ defmodule CourierWeb.AuthLayout do
     """
   end
 
-  attr :show, :list, required: true
-
-  def auth_links(assigns) do
-    links =
-      links()
-      |> Enum.filter(fn {key, _, _} -> key in assigns.show end)
-      |> Enum.with_index()
-
-    assigns = assign(assigns, :links, links)
-
-    ~H"""
-    <p class="text-center text-sm text-base-content/60">
-      <span :for={{{_key, label, path}, index} <- @links}>
-        <span :if={index > 0} class="px-1 text-base-content/40">·</span>
-        <.link navigate={path} class="link">{label}</.link>
-      </span>
-    </p>
-    """
-  end
-
-  defp links do
-    [
-      {:login, "Entrar", ~p"/login"},
-      {:reset, "Esqueci minha senha", ~p"/reset-password"},
-      {:confirm, "Não recebi a confirmação", ~p"/confirm"}
-    ]
-  end
-
   def google_button(assigns) do
     assigns = assign(assigns, :configured, Courier.Connectors.Google.configured?())
 
     ~H"""
-    <div :if={@configured} class="space-y-4">
-      <a href={~p"/auth/google"} class="btn btn-outline w-full gap-2">
-        <.google_mark /> Continuar com o Google
-      </a>
-
-      <div class="flex items-center gap-3 text-xs text-base-content/50">
-        <span class="h-px flex-1 bg-base-300"></span> ou <span class="h-px flex-1 bg-base-300"></span>
-      </div>
-    </div>
+    <a :if={@configured} href={~p"/auth/google"} class="btn btn-outline w-full gap-2">
+      <.google_mark /> Continuar com o Google
+    </a>
+    <p
+      :if={!@configured}
+      id="google-unavailable"
+      class="rounded-box border border-error/30 bg-error/10 p-4 text-sm text-error"
+    >
+      A entrada pelo Google não está configurada. Defina GOOGLE_CLIENT_ID e GOOGLE_CLIENT_SECRET.
+    </p>
     """
   end
 
