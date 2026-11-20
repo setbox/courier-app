@@ -88,7 +88,7 @@ defmodule CourierWeb.EnvironmentLive.EmailConfig do
         <:subtitle>Provider, credencial, remetente padrão e, no Postmark, rastreio.</:subtitle>
       </.header>
 
-      <.card class="max-w-3xl p-6">
+      <.card class="max-w-[720px] p-4">
         <.form
           for={@form}
           id="config_form"
@@ -117,7 +117,7 @@ defmodule CourierWeb.EnvironmentLive.EmailConfig do
             type="password"
             label={token_label(@provider)}
             value=""
-            autocomplete="off"
+            autocomplete="new-password"
             placeholder={
               @config.server_token_hint && @config.provider == @provider &&
                 "••••#{@config.server_token_hint} (deixe vazio para manter)"

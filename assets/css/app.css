@@ -34,11 +34,11 @@
   --color-warning-content: #ffffff;
   --color-error: #af0914;
   --color-error-content: #ffffff;
-  --radius-selector: 0.5rem;
-  --radius-field: 0.625rem;
-  --radius-box: 0.875rem;
-  --size-selector: 0.25rem;
-  --size-field: 0.25rem;
+  --radius-selector: 0.25rem;
+  --radius-field: 0.375rem;
+  --radius-box: 0.5rem;
+  --size-selector: 0.21875rem;
+  --size-field: 0.225rem;
   --border: 1px;
   --depth: 0;
   --noise: 0;
@@ -67,13 +67,13 @@
   --color-success-content: #111111;
   --color-warning: #ffda6e;
   --color-warning-content: #111111;
-  --color-error: #fb0d1c;
-  --color-error-content: #ffffff;
-  --radius-selector: 0.5rem;
-  --radius-field: 0.625rem;
-  --radius-box: 0.875rem;
-  --size-selector: 0.25rem;
-  --size-field: 0.25rem;
+  --color-error: #ff6670;
+  --color-error-content: #111111;
+  --radius-selector: 0.25rem;
+  --radius-field: 0.375rem;
+  --radius-box: 0.5rem;
+  --size-selector: 0.21875rem;
+  --size-field: 0.225rem;
   --border: 1px;
   --depth: 0;
   --noise: 0;
@@ -105,13 +105,19 @@
   border-color: color-mix(in oklab, var(--color-base-content) 18%, transparent);
 }
 
+body { font-size: 0.875rem; line-height: 1.45; }
+
+:focus-visible { outline-color: var(--color-accent); }
+
 .input:focus, .input:focus-within,
 .select:focus, .select:focus-within,
 .textarea:focus {
   outline: none;
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-primary) 18%, transparent);
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-accent) 18%, transparent);
 }
+
+.tabs-border .tab:is(.tab-active, [aria-selected="true"])::before { background-color: var(--color-accent); }
 
 @media (pointer: coarse) {
   .input, .select, .textarea {

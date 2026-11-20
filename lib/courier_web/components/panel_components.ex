@@ -23,9 +23,9 @@ defmodule CourierWeb.PanelComponents do
 
   def card_section(assigns) do
     ~H"""
-    <.card class={["space-y-4 p-6", @class]}>
+    <.card class={["space-y-4 p-4", @class]}>
       <div class="space-y-1">
-        <h2 class="text-lg font-bold">{@title}</h2>
+        <h2 class="text-base font-semibold">{@title}</h2>
         <p :if={@subtitle != []} class="text-sm text-neutral">{render_slot(@subtitle)}</p>
       </div>
       {render_slot(@inner_block)}
@@ -53,7 +53,7 @@ defmodule CourierWeb.PanelComponents do
 
   def empty_state(assigns) do
     ~H"""
-    <.card class="p-10 text-center">
+    <.card class="p-8 text-center">
       <p class="font-semibold">{@title}</p>
       <p :if={@inner_block != []} class="text-sm text-neutral">{render_slot(@inner_block)}</p>
     </.card>
@@ -68,7 +68,7 @@ defmodule CourierWeb.PanelComponents do
     ~H"""
     <span
       class={[
-        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-bold whitespace-nowrap",
+        "inline-flex h-[22px] items-center gap-1.5 rounded-full px-2.5 text-xs font-semibold whitespace-nowrap",
         pill_colors(@tone)
       ]}
       {@rest}
@@ -80,7 +80,7 @@ defmodule CourierWeb.PanelComponents do
   end
 
   defp pill_colors(:ok), do: "bg-success/12 text-success"
-  defp pill_colors(:pending), do: "bg-warning/15 text-warning"
+  defp pill_colors(:pending), do: "bg-warning/12 text-warning"
   defp pill_colors(:error), do: "bg-error/12 text-error"
   defp pill_colors(:neutral), do: "bg-base-300 text-neutral"
 

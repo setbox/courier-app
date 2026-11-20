@@ -101,7 +101,7 @@ defmodule CourierWeb.CoreComponents do
 
     assigns =
       assign_new(assigns, :class, fn ->
-        ["btn btn-sm", Map.fetch!(variants, assigns[:variant])]
+        ["btn", Map.fetch!(variants, assigns[:variant])]
       end)
 
     if rest[:href] || rest[:navigate] || rest[:patch] do
@@ -198,7 +198,7 @@ defmodule CourierWeb.CoreComponents do
             name={@name}
             value="true"
             checked={@checked}
-            class={@class || "checkbox checkbox-sm"}
+            class={@class || "checkbox checkbox-sm checkbox-accent"}
             {@rest}
           />{@label}
         </span>
@@ -293,10 +293,10 @@ defmodule CourierWeb.CoreComponents do
     ~H"""
     <header class={[@actions != [] && "flex flex-wrap items-end justify-between gap-4"]}>
       <div class="space-y-1">
-        <h1 class="text-[28px] leading-tight font-extrabold tracking-tight">
+        <h1 class="text-xl leading-tight font-semibold">
           {render_slot(@inner_block)}
         </h1>
-        <p :if={@subtitle != []} class="text-[15px] text-neutral">
+        <p :if={@subtitle != []} class="text-sm text-neutral">
           {render_slot(@subtitle)}
         </p>
       </div>

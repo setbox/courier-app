@@ -71,7 +71,7 @@ defmodule CourierWeb.EmailLive.Index do
         <:subtitle>Tudo o que as aplicações enviaram pelo Courier nos últimos 90 dias.</:subtitle>
       </.header>
 
-      <.card class="p-6">
+      <.card class="p-4">
         <.form
           for={@filter_form}
           id="filter_form"
@@ -102,11 +102,11 @@ defmodule CourierWeb.EmailLive.Index do
           :for={email <- @emails}
           id={"email-#{email.id}"}
           navigate={~p"/emails/#{email}"}
-          class="flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-base-300 px-6 py-4 first:border-t-0 hover:bg-base-200"
+          class="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-base-300 px-4 py-2.5 first:border-t-0 hover:bg-base-200"
         >
           <div class="min-w-0 flex-[1_1_360px] space-y-0.5">
             <span class="block truncate font-bold">{email.subject}</span>
-            <p class="truncate text-[13px] text-neutral">
+            <p class="truncate text-xs text-neutral">
               {recipients(email)} · {email.environment.app.name} / {email.environment.name}
             </p>
           </div>

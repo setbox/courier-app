@@ -27,11 +27,11 @@ defmodule CourierWeb.ProviderLive.Index do
           :for={provider <- @providers}
           id={"provider-#{provider}"}
           navigate={~p"/providers/#{provider}"}
-          class="flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-base-300 px-6 py-4 first:border-t-0 hover:bg-base-200"
+          class="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-base-300 px-4 py-2.5 first:border-t-0 hover:bg-base-200"
         >
           <div class="min-w-0 flex-[1_1_320px] space-y-0.5">
-            <span class="text-lg font-bold">{ChannelConfig.provider_label(provider)}</span>
-            <p class="text-[13px] text-neutral">{ChannelConfig.provider_description(provider)}</p>
+            <span class="text-sm font-semibold">{ChannelConfig.provider_label(provider)}</span>
+            <p class="text-xs text-neutral">{ChannelConfig.provider_description(provider)}</p>
           </div>
           <span class="text-sm text-neutral">{environment_count(@counts[provider])}</span>
           <.icon name="hero-chevron-right" class="size-5 text-neutral" />

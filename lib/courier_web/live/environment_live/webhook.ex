@@ -55,7 +55,7 @@ defmodule CourierWeb.EnvironmentLive.Webhook do
         </:subtitle>
       </.header>
 
-      <.card :if={@revealed_secret} id="revealed-secret" class="max-w-3xl space-y-3 p-6">
+      <.card :if={@revealed_secret} id="revealed-secret" class="max-w-[720px] space-y-3 p-4">
         <p class="font-semibold">
           Segredo de assinatura. Copie agora: ele não será mostrado de novo.
         </p>
@@ -70,7 +70,7 @@ defmodule CourierWeb.EnvironmentLive.Webhook do
         </div>
       </.card>
 
-      <.card :if={is_nil(@revealed_secret)} class="max-w-3xl p-6">
+      <.card :if={is_nil(@revealed_secret)} class="max-w-[720px] p-4">
         <.form for={@form} id="webhook_form" phx-submit="save">
           <.input
             field={@form[:webhook_url]}

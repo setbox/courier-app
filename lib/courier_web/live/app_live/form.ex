@@ -61,7 +61,7 @@ defmodule CourierWeb.AppLive.Form do
         <:subtitle>O sistema que vai enviar mensagens pelo Courier.</:subtitle>
       </.header>
 
-      <.card class="max-w-2xl p-6">
+      <.card class="max-w-2xl p-4">
         <.form for={@form} id="app_form" phx-change="validate" phx-submit="save">
           <.input field={@form[:name]} label="Nome" placeholder="Ex.: Jayio" required />
           <p :if={@live_action == :edit} class="mb-3 text-xs text-neutral">

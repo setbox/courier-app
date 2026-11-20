@@ -32,7 +32,10 @@ defmodule CourierWeb.Layouts do
         >
           <span class={[
             "flex h-8 w-14 items-center justify-center rounded-full transition-colors",
-            if(@active == key, do: "bg-primary text-primary-content", else: "group-hover:bg-base-300")
+            if(@active == key,
+              do: "bg-accent text-accent-content",
+              else: "group-hover:bg-accent/10 group-hover:text-accent"
+            )
           ]}>
             <.icon name={icon} class="size-5" />
           </span>
@@ -43,13 +46,13 @@ defmodule CourierWeb.Layouts do
       </nav>
 
       <div class="flex min-w-0 flex-1 flex-col">
-        <header class="sticky top-0 z-30 flex h-14 items-center justify-between gap-4 border-b border-base-300 bg-base-100 px-4 sm:px-6">
+        <header class="sticky top-0 z-30 flex h-12 items-center justify-between gap-4 border-b border-base-300 bg-base-100 px-4 sm:px-6">
           <div class="flex items-center gap-2">
             <div class="dropdown md:hidden">
               <div
                 tabindex="0"
                 role="button"
-                class="btn btn-ghost btn-sm btn-square"
+                class="btn btn-ghost btn-square"
                 aria-label="Menu"
               >
                 <.icon name="hero-bars-3" class="size-5" />
@@ -67,7 +70,7 @@ defmodule CourierWeb.Layouts do
             </div>
             <.link navigate={~p"/"} class="flex items-center gap-2.5">
               <img src={~p"/images/logo.svg"} alt="" class="h-6 w-auto md:hidden" />
-              <span class="text-lg font-bold">Courier</span>
+              <span class="text-base font-semibold">Courier</span>
             </.link>
           </div>
           <div class="flex items-center gap-3">
@@ -97,8 +100,8 @@ defmodule CourierWeb.Layouts do
             </div>
           </div>
         </header>
-        <main class="min-w-0 flex-1 px-4 py-8 sm:px-10">
-          <div class="flex flex-col gap-6">
+        <main class="min-w-0 flex-1 px-4 py-6 sm:px-6">
+          <div class="flex max-w-[1280px] flex-col gap-4">
             {render_slot(@inner_block)}
           </div>
         </main>

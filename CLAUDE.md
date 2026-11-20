@@ -65,8 +65,12 @@ em `lib/courier/connectors/` (`Google`, `Postmark`, `Brevo`, `Mailtrap`), worker
 
 ## Visual
 
-Guia de estilos da Setbox, o mesmo do Vitrine (`../../../labs/vitrine/vitrine-app`): Manrope, vermelho
-`#AF0914` em botão e texto no claro, menu em rail à esquerda como o backoffice do PJ Park (cubo da Setbox no
+Guia de estilos da Setbox em `../../../divisoes/setbox/setbox-stylebook`, na **densidade compacta** de app
+(corpo de 14px, título de tela `text-xl font-semibold`, painel `p-4`, linha de lista `px-4 py-2.5`, controle
+de 36px, raio 8/6/4px; tema de `components/daisyui-compacto.css`). Manrope. **Dois vermelhos:** o 30p
+`#AF0914` (`primary`) em botão de texto pequeno, link e todo texto vermelho; o vivo `#FB0D1C` (`accent`) em
+gráfico: item ativo do rail, controle ligado (`checkbox-accent`, `toggle-accent`), traço de aba, anel de
+foco e borda do campo em foco. Menu em rail à esquerda como o backoffice do PJ Park (cubo da Setbox no
 topo, ícone e rótulo por item; abaixo de `md` vira menu na barra), barra superior com tema e conta
 (`Layouts.app`, atributo `active`), conteúdo em cartões (`CourierWeb.PanelComponents`: `card`,
 `card_section`, `empty_state`, `pill`), avisos em toast no canto inferior. O tema escuro usa os
@@ -85,7 +89,7 @@ Referência: `AppLive.Form`, `EnvironmentLive.Form`, `EnvironmentLive.EmailConfi
 `card` já recorta o conteúdo (`overflow-hidden`) para o hover não apagar os cantos arredondados.
 Não tire isso; por consequência, menu suspenso (dropdown) não vai dentro de `<.card>`.
 
-**Botão ao lado de campo**, se um dia for inevitável: mesma altura do `<.input>` (40px, ou seja, sem
-`btn-sm`) e alinhado ao campo, não ao fundo da linha, para não desalinhar quando o campo mostra erro.
+**Botão ao lado de campo**, se um dia for inevitável: mesma altura do `<.input>` (36px no tema compacto,
+ou seja, sem `btn-sm`) e alinhado ao campo, não ao fundo da linha, para não desalinhar quando o campo mostra erro.
 Confira com screenshot.
 

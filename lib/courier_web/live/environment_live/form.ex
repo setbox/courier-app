@@ -73,7 +73,7 @@ defmodule CourierWeb.EnvironmentLive.Form do
         </:subtitle>
       </.header>
 
-      <.card class="max-w-2xl p-6">
+      <.card class="max-w-2xl p-4">
         <.form for={@form} id="environment_form" phx-change="validate" phx-submit="save">
           <.input field={@form[:name]} label="Nome" placeholder="Ex.: prod" required />
           <p :if={@live_action == :edit} class="mb-3 text-xs text-neutral">

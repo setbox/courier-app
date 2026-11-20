@@ -53,7 +53,7 @@ defmodule CourierWeb.EnvironmentLive.Recipients do
         </:subtitle>
       </.header>
 
-      <.card class="max-w-3xl p-6">
+      <.card class="max-w-[720px] p-4">
         <.form
           for={@form}
           id="recipients_form"

@@ -44,11 +44,11 @@ defmodule CourierWeb.AppLive.Show do
           :for={env <- @app.environments}
           id={"environment-#{env.id}"}
           navigate={~p"/apps/#{@app}/environments/#{env}"}
-          class="flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-base-300 px-6 py-4 first:border-t-0 hover:bg-base-200"
+          class="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-base-300 px-4 py-2.5 first:border-t-0 hover:bg-base-200"
         >
           <div class="min-w-0 flex-[1_1_240px] space-y-0.5">
-            <span class="text-lg font-bold">{env.name}</span>
-            <p class="text-[13px] text-neutral"><code>{env.slug}</code></p>
+            <span class="text-sm font-semibold">{env.name}</span>
+            <p class="text-xs text-neutral"><code>{env.slug}</code></p>
           </div>
           <.pill :if={env.client_token_hint} tone={:ok}>cl_…{env.client_token_hint}</.pill>
           <.pill :if={is_nil(env.client_token_hint)} tone={:pending}>sem token</.pill>
