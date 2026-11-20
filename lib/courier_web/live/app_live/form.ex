@@ -61,14 +61,20 @@ defmodule CourierWeb.AppLive.Form do
         <:subtitle>O sistema que vai enviar mensagens pelo Courier.</:subtitle>
       </.header>
 
-      <.card class="max-w-2xl p-4">
-        <.form for={@form} id="app_form" phx-change="validate" phx-submit="save">
+      <.card class="p-4">
+        <.form
+          for={@form}
+          id="app_form"
+          phx-change="validate"
+          phx-submit="save"
+          class="grid gap-x-4 sm:grid-cols-2 xl:grid-cols-3"
+        >
           <.input field={@form[:name]} label="Nome" placeholder="Ex.: Jayio" required />
-          <p :if={@live_action == :edit} class="mb-3 text-xs text-neutral">
+          <p :if={@live_action == :edit} class="col-span-full mb-2 text-xs text-neutral">
             Identificador <code>{@app.slug}</code>: não muda ao renomear.
           </p>
-          <div class="mt-4 flex flex-wrap items-center justify-end gap-2">
-            <.button navigate={if @app.id, do: ~p"/apps/#{@app}", else: ~p"/"}>Cancelar</.button>
+          <div class="col-span-full mt-2 flex flex-wrap items-center justify-end gap-2">
+            <.button navigate={if @app.id, do: ~p"/apps/#{@app}", else: ~p"/apps"}>Cancelar</.button>
             <.button variant="primary" phx-disable-with="Salvando...">Salvar</.button>
           </div>
         </.form>

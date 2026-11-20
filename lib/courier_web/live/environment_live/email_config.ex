@@ -88,13 +88,13 @@ defmodule CourierWeb.EnvironmentLive.EmailConfig do
         <:subtitle>Provider, credencial, remetente padrão e, no Postmark, rastreio.</:subtitle>
       </.header>
 
-      <.card class="max-w-[720px] p-4">
+      <.card class="p-4">
         <.form
           for={@form}
           id="config_form"
           phx-change="validate"
           phx-submit="save"
-          class="grid gap-x-4 sm:grid-cols-2"
+          class="grid gap-x-4 sm:grid-cols-2 xl:grid-cols-3"
         >
           <.input
             field={@form[:provider]}
@@ -102,13 +102,12 @@ defmodule CourierWeb.EnvironmentLive.EmailConfig do
             label="Provider"
             options={provider_options()}
           />
-          <p :if={@provider == :sandbox} class="mb-2 self-end text-sm text-neutral sm:pb-2">
+          <p :if={@provider == :sandbox} class="col-span-full mb-2 text-sm text-neutral">
             O Courier guarda o e-mail e não envia: o conteúdo fica na tela de E-mails.
           </p>
-          <p :if={@provider == :brevo} class="mb-2 self-end text-sm text-neutral sm:pb-2">
+          <p :if={@provider == :brevo} class="col-span-full mb-2 text-sm text-neutral">
             Rastreio de abertura e clique é ligado na conta do Brevo.
           </p>
-          <div :if={@provider == :postmark} class="hidden sm:block"></div>
           <.input
             :if={@provider != :sandbox}
             field={@form[:server_token]}
@@ -140,7 +139,7 @@ defmodule CourierWeb.EnvironmentLive.EmailConfig do
             type="checkbox"
             label="Rastrear cliques"
           />
-          <div class="mt-4 flex flex-wrap items-center justify-end gap-2 sm:col-span-2">
+          <div class="col-span-full mt-2 flex flex-wrap items-center justify-end gap-2">
             <.button navigate={~p"/apps/#{@environment.app}/environments/#{@environment}"}>
               Cancelar
             </.button>

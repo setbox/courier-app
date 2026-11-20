@@ -58,3 +58,22 @@
     color: var(--color-accent);
   }
 }
+
+.theme-toggle__sol,
+.theme-toggle__lua {
+  transition: opacity 0.3s ease, transform 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.theme-toggle__lua { opacity: 0; transform: rotate(-90deg) scale(0.5); }
+
+[data-theme=dark] .theme-toggle__sol { opacity: 0; transform: rotate(90deg) scale(0.5); }
+[data-theme=dark] .theme-toggle__lua { opacity: 1; transform: none; }
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) .theme-toggle__sol { opacity: 0; transform: rotate(90deg) scale(0.5); }
+  :root:not([data-theme]) .theme-toggle__lua { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-toggle__sol, .theme-toggle__lua { transition: none; }
+}

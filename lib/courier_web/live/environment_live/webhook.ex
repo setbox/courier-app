@@ -55,7 +55,7 @@ defmodule CourierWeb.EnvironmentLive.Webhook do
         </:subtitle>
       </.header>
 
-      <.card :if={@revealed_secret} id="revealed-secret" class="max-w-[720px] space-y-3 p-4">
+      <.card :if={@revealed_secret} id="revealed-secret" class="space-y-3 p-4">
         <p class="font-semibold">
           Segredo de assinatura. Copie agora: ele não será mostrado de novo.
         </p>
@@ -70,15 +70,22 @@ defmodule CourierWeb.EnvironmentLive.Webhook do
         </div>
       </.card>
 
-      <.card :if={is_nil(@revealed_secret)} class="max-w-[720px] p-4">
-        <.form for={@form} id="webhook_form" phx-submit="save">
-          <.input
-            field={@form[:webhook_url]}
-            type="url"
-            label="URL"
-            placeholder="https://app.exemplo.com.br/webhooks/courier"
-          />
-          <div class="mt-4 flex flex-wrap items-center justify-end gap-2">
+      <.card :if={is_nil(@revealed_secret)} class="p-4">
+        <.form
+          for={@form}
+          id="webhook_form"
+          phx-submit="save"
+          class="grid gap-x-4 sm:grid-cols-2 xl:grid-cols-3"
+        >
+          <div class="col-span-full">
+            <.input
+              field={@form[:webhook_url]}
+              type="url"
+              label="URL"
+              placeholder="https://app.exemplo.com.br/webhooks/courier"
+            />
+          </div>
+          <div class="col-span-full mt-2 flex flex-wrap items-center justify-end gap-2">
             <.button navigate={~p"/apps/#{@environment.app}/environments/#{@environment}"}>
               Cancelar
             </.button>

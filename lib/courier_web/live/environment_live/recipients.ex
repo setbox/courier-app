@@ -53,7 +53,7 @@ defmodule CourierWeb.EnvironmentLive.Recipients do
         </:subtitle>
       </.header>
 
-      <.card class="max-w-[720px] p-4">
+      <.card class="p-4">
         <.form
           for={@form}
           id="recipients_form"
@@ -76,7 +76,7 @@ defmodule CourierWeb.EnvironmentLive.Recipients do
             rows="8"
             placeholder="cliente.antigo@exemplo.com.br"
           />
-          <div class="mt-4 flex flex-wrap items-center justify-end gap-2 sm:col-span-2">
+          <div class="col-span-full mt-2 flex flex-wrap items-center justify-end gap-2">
             <.button navigate={~p"/apps/#{@environment.app}/environments/#{@environment}"}>
               Cancelar
             </.button>
