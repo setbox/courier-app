@@ -6,14 +6,15 @@ defmodule CourierWeb.OAuthController do
   alias CourierWeb.UserAuth
 
   @state_key :google_oauth_state
+  @email ~r/^[^@,;<>\s]+@[^@,;<>\s]+\.[^@,;<>\s]+$/
 
-  def request(conn, _params) do
+  def request(conn, params) do
     if Google.configured?() do
       state = Base.url_encode64(:crypto.strong_rand_bytes(24), padding: false)
 
       conn
       |> put_session(@state_key, state)
-      |> redirect(external: Google.authorize_url(state, callback_url()))
+      |> redirect(external: Google.authorize_url(state, callback_url(), login_hint(params)))
     else
       failed(conn, "A entrada com o Google está indisponível agora.")
     end
@@ -61,6 +62,13 @@ defmodule CourierWeb.OAuthController do
     |> put_flash(:error, message)
     |> redirect(to: ~p"/login")
   end
+
+  defp login_hint(%{"login_hint" => hint}) when is_binary(hint) do
+    hint = String.trim(hint)
+    if byte_size(hint) <= 160 and Regex.match?(@email, hint), do: hint
+  end
+
+  defp login_hint(_params), do: nil
 
   defp callback_url, do: url(~p"/auth/google/callback")
 end

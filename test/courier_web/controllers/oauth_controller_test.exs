@@ -20,6 +20,32 @@ defmodule CourierWeb.OAuthControllerTest do
     assert redirected_to(conn) =~ "state=#{state}"
   end
 
+  test "starts from an outside link and asks Google to choose the account", %{conn: conn} do
+    conn = get(conn, ~p"/auth/google")
+    url = redirected_to(conn)
+
+    assert get_session(conn, :google_oauth_state)
+    assert url =~ "prompt=select_account"
+    refute url =~ "login_hint"
+  end
+
+  test "passes a valid login_hint to Google and skips the account chooser", %{conn: conn} do
+    conn = get(conn, ~p"/auth/google", %{"login_hint" => "jackson@setbox.com.br"})
+    url = redirected_to(conn)
+
+    assert url =~ "login_hint=jackson%40setbox.com.br"
+    refute url =~ "prompt="
+    assert get_session(conn, :google_oauth_state)
+  end
+
+  test "ignores an invalid login_hint", %{conn: conn} do
+    conn = get(conn, ~p"/auth/google", %{"login_hint" => "não é e-mail<script>"})
+    url = redirected_to(conn)
+
+    refute url =~ "login_hint"
+    assert url =~ "prompt=select_account"
+  end
+
   test "logs in an existing user with a verified email", %{conn: conn} do
     user = user_fixture()
     GoogleStub.put_userinfo(%{"email" => user.email, "email_verified" => true})

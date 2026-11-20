@@ -9,19 +9,23 @@ defmodule Courier.Connectors.Google do
       is_binary(config()[:client_secret]) and config()[:client_secret] != ""
   end
 
-  def authorize_url(state, redirect_uri) when is_binary(state) do
+  def authorize_url(state, redirect_uri, login_hint \\ nil) when is_binary(state) do
     query =
-      URI.encode_query(%{
+      %{
         "client_id" => config()[:client_id],
         "redirect_uri" => redirect_uri,
         "response_type" => "code",
         "scope" => @scope,
-        "state" => state,
-        "prompt" => "select_account"
-      })
+        "state" => state
+      }
+      |> Map.merge(account_params(login_hint))
+      |> URI.encode_query()
 
     @authorize_url <> "?" <> query
   end
+
+  defp account_params(nil), do: %{"prompt" => "select_account"}
+  defp account_params(login_hint), do: %{"login_hint" => login_hint}
 
   def fetch_profile(code, redirect_uri) when is_binary(code) do
     with {:ok, token} <- exchange_code(code, redirect_uri),
